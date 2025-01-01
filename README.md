@@ -1,17 +1,78 @@
-# Yayska Frontend
+# Yayska - Supporting Parents with Primary School Mathematics
 
-Yayska is a mobile application designed to support parents in Ireland with their children's primary school education. The app provides detailed concept explanations, practical examples, and parent guides across various subjects.
+## About Yayska
 
-## 🎯 Overview
+Yayska is a mobile and web application designed to help parents support their children's learning journey in primary school mathematics. Built with Irish curriculum in mind, it provides parents with clear, practical insights into mathematical concepts their children are learning.
 
-Built with React Native and Expo Router, Yayska offers an intuitive interface for parents to:
+## Key Features
 
-- Track multiple children across different primary school years
-- Access detailed concept explanations with practical Irish context
-- Get guidance on supporting their children's learning journey
-- Navigate through subjects and concepts easily
+- **Curriculum-Aligned Content**: Mapped to the Irish primary school curriculum
+- **Parent-Friendly Explanations**: Complex topics broken down into digestible information
+- **Practical Applications**: Real-world examples and practice ideas
+- **Multiple Children Support**: Manage different children at different class levels
+- **Irish Context**: Examples and applications relevant to Irish daily life
 
-## 🏗️ Project Structure
+## Concept Information
+
+For each mathematical concept, parents can access:
+
+- 🎯 **Why Important**
+  - Practical value in daily life
+  - Future learning implications
+  - Modern relevance
+- 📊 **Difficulty Guide**
+  - Challenge level assessment
+  - Common barriers
+  - Reassuring perspectives
+- 💡 **Parent Guide**
+  - Key points to understand
+  - Quick tips for helping
+  - Practice ideas
+- 🌍 **Real World Applications**
+  - Irish context examples
+  - Practical scenarios
+  - Daily life connections
+- ⏱️ **Time Guidelines**
+  - Learning pace estimates
+  - Practice recommendations
+
+## Technical Details
+
+- Built with React Native/Expo
+- Supports both web and mobile platforms
+- TypeScript for type safety
+- Modern, responsive UI design
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Start the development server:
+
+```bash
+npm start
+```
+
+## Development Status
+
+Currently in MVP phase, focusing on:
+
+- Primary school mathematics
+- Core concept explanations
+- Basic parent guidance
+
+Future plans include:
+
+- Additional subjects
+- Interactive assessments
+- AI-powered chat support
+
+## Project Structure
 
 ```
 yayska-frontend/
@@ -28,88 +89,18 @@ yayska-frontend/
 │ └── theme/ # Global styling and colors
 ```
 
-## 🎨 Features
+## Contributing
 
-### Welcome Screen
+We welcome contributions! Please see our contributing guidelines for more details.
 
-- Irish-themed welcome page with tricolor stripe
-- "Fáilte go Yayska!" greeting
-- Simple onboarding flow initiation
+## License
 
-### Onboarding
+[License details]
 
-- Add multiple children
-- Select school year (Junior Infants through 6th Class)
-- Flexible child management (add/remove children)
+## Contact
 
-### Home Dashboard
+[Contact information]
 
-- Child selector with year display
-- Subject categorization
-- Concept grid navigation
-- Clean, intuitive interface
+---
 
-### Concept Details
-
-- Three-section layout:
-  1. Why Important (practical value, future learning, modern relevance)
-  2. Difficulty Stats (challenge level, common barriers, reassurance)
-  3. Parent Guide (key points, quick tips)
-- Interactive section navigation
-- Context-specific Irish examples
-
-## 🎨 Design System
-
-### Colors
-
-- Primary palette inspired by Irish flag:
-  - Green (`#169B62`)
-  - White (`#FFFFFF`)
-  - Orange (`#FF8C37`)
-- Semantic colors for:
-  - Success/Error states
-  - Text hierarchy
-  - Backgrounds
-  - UI accents
-
-### UI Components
-
-- Consistent border radius system
-- Standardized shadow effects
-- Responsive button states
-- Accessible text sizing
-
-## 🚀 Getting Started
-
-1. Install dependencies:
-
-```
-npm install
-```
-
-2. Start the development server:
-
-```bash
-npx expo start
-```
-
-3. Run on your preferred platform:
-
-- Press `i` for iOS simulator
-- Press `a` for Android emulator
-- Scan QR code with Expo Go app for physical device
-
-## 📱 Platform Support
-
-- iOS
-- Android
-- Expo Go compatible
-
-## 🔜 Upcoming Features
-
-- API integration for dynamic content
-- User authentication
-- Progress tracking
-- Additional subjects beyond Mathematics
-- Customized learning paths
-- Chatbot for quick questions
+Built with ❤️ for parents in Ireland
