@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "build": "expo export -p web",
+    "build": "GENERATE_SOURCEMAP=false expo export -p web",
     "deploy": "vercel"
   },
   "jest": {
