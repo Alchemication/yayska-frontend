@@ -1,56 +1,58 @@
 // app/concept/[id].tsx
 import { useLocalSearchParams } from 'expo-router';
-import { StyleSheet, ScrollView, Text } from 'react-native';
+import { StyleSheet, ScrollView, Text, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ConceptDetailCard } from '../../src/components/Concept/ConceptDetailCard';
 import { colors } from '../../src/theme/colors';
-
-// Mock data (we'll fetch from API later)
-const MOCK_CONCEPT = {
-  title: 'Patterns with Fractions and Decimals',
-  why_important: {
-    practical_value:
-      'Helps with recipe scaling and financial calculations, like working out discounts in Penneys or SuperValu where you might see both fractions and decimals.',
-    future_learning:
-      'Essential foundation for algebra and ratio problems in secondary school.',
-    modern_relevance:
-      'While calculators can convert between forms, understanding these patterns helps with quick mental estimates.',
-  },
-  difficulty_stats: {
-    challenge_rate: 8,
-    common_barriers: [
-      'Confusion when switching between fraction and decimal representations',
-      'Difficulty recognizing the relationship between terms',
-      'Struggle with mixed number formats',
-    ],
-    reassurance:
-      'Like learning to switch between kilometres and miles - it seems tricky at first but becomes second nature with practice.',
-  },
-  parent_guide: {
-    key_points: [
-      'Patterns can be written in different but equivalent ways (½ = 0.5)',
-      'Focus on the relationship between numbers, not just memorizing the sequence',
-      'Regular practice with both formats builds confidence',
-    ],
-    quick_tips: [
-      'Use measuring cups while cooking to practice',
-      'Create simple patterns with pocket money',
-      "Play 'spot the pattern' with price tags",
-    ],
-  },
-};
+import { api } from '../../src/services/api';
+import { ConceptMetadata } from '../../src/types/concept';
 
 export default function ConceptDetailScreen() {
   const { id } = useLocalSearchParams();
   const [activeSection, setActiveSection] = useState('why');
+  const [concept, setConcept] = useState<ConceptMetadata | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadConcept = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getConceptMetadata(Number(id));
+        setConcept(data as ConceptMetadata);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load concept');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadConcept();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color={colors.primary.green} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        <Text style={styles.title}>{MOCK_CONCEPT.title}</Text>
+        <Text style={styles.title}>{concept?.concept_name}</Text>
         <ConceptDetailCard
-          concept={MOCK_CONCEPT}
+          concept={concept}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
         />
@@ -73,5 +75,10 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     padding: 20,
     textAlign: 'center',
+  },
+  errorText: {
+    color: colors.accent.error,
+    textAlign: 'center',
+    padding: 20,
   },
 });

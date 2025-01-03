@@ -42,6 +42,13 @@ export const colors = {
     secondary: '#4A4A4A',
     tertiary: '#9DA3AE',
   },
+
+  // Difficulty colors
+  difficulty: {
+    easy: '#4CAF50', // Green
+    medium: '#FF9800', // Orange
+    hard: '#F44336', // Red
+  },
 };
 
 // Common styles

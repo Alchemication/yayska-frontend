@@ -6,12 +6,14 @@ type ChildInputProps = {
   childName: string;
   onNameChange: (text: string) => void;
   onRemove: () => void;
+  showRemove?: boolean; // Add this prop definition
 };
 
 export function ChildInput({
   childName,
   onNameChange,
   onRemove,
+  showRemove = true, // Default value
 }: ChildInputProps) {
   return (
     <View style={styles.container}>
@@ -22,9 +24,11 @@ export function ChildInput({
         placeholder="Child's name (optional)"
         placeholderTextColor={colors.text.tertiary}
       />
-      <Pressable style={styles.removeButton} onPress={onRemove}>
-        <Text style={styles.removeButtonText}>Remove</Text>
-      </Pressable>
+      {showRemove && (
+        <Pressable style={styles.removeButton} onPress={onRemove}>
+          <Text style={styles.removeButtonText}>Remove</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -58,6 +58,18 @@ npm install
 npm start
 ```
 
+4. Deployment:
+
+```
+# Test production build locally
+npm run build
+npx serve dist
+
+# Deploy
+# First commit changes
+git push origin main  # Vercel automatically deploys
+```
+
 ## Development Status
 
 Currently in MVP phase, focusing on:

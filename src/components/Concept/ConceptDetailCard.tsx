@@ -1,6 +1,7 @@
 // src/components/Concept/ConceptDetailCard.tsx
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { colors, commonStyles } from '../../theme/colors';
+import { ConceptMetadata } from '../../types/concept';
 
 type SectionType = {
   id: string;
@@ -10,23 +11,7 @@ type SectionType = {
 };
 
 type ConceptDetailCardProps = {
-  concept: {
-    title: string;
-    why_important: {
-      practical_value: string;
-      future_learning: string;
-      modern_relevance: string;
-    };
-    difficulty_stats: {
-      challenge_rate: number;
-      common_barriers: string[];
-      reassurance: string;
-    };
-    parent_guide: {
-      key_points: string[];
-      quick_tips: string[];
-    };
-  };
+  concept: ConceptMetadata | null;
   activeSection: string;
   onSectionChange: (sectionId: string) => void;
 };
@@ -57,6 +42,8 @@ export function ConceptDetailCard({
   activeSection,
   onSectionChange,
 }: ConceptDetailCardProps) {
+  if (!concept) return null;
+
   const renderSectionContent = () => {
     switch (activeSection) {
       case 'why':

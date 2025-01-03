@@ -1,28 +1,42 @@
 // app/onboarding.tsx
 import { useState } from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChildInput } from '../src/components/Onboarding/ChildInput';
 import { YearSelector } from '../src/components/Onboarding/YearSelector';
 import { colors, commonStyles } from '../src/theme/colors';
+import { saveChildren } from '../src/utils/storage';
 
 type Child = {
   id: string;
   name: string;
   year: string | null;
+  yearId: number | null;
 };
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const [children, setChildren] = useState<Child[]>([
-    { id: '1', name: '', year: null },
+    { id: '1', name: '', year: null, yearId: null },
   ]);
 
   const addChild = () => {
     setChildren([
       ...children,
-      { id: Date.now().toString(), name: '', year: null },
+      {
+        id: (children.length + 1).toString(),
+        name: '',
+        year: null,
+        yearId: null,
+      },
     ]);
   };
 
@@ -38,19 +52,36 @@ export default function OnboardingScreen() {
     );
   };
 
-  const updateChildYear = (id: string, year: string) => {
+  const updateChildYear = (id: string, yearId: number, yearName: string) => {
     setChildren(
-      children.map((child) => (child.id === id ? { ...child, year } : child))
+      children.map((child) =>
+        child.id === id ? { ...child, year: yearName, yearId } : child
+      )
     );
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     // Validate that all children have years selected
-    if (children.some((child) => !child.year)) {
-      // Show error or alert
+    if (children.some((child) => !child.yearId)) {
+      Alert.alert(
+        'Missing Information',
+        'Please select a year for each child before continuing.',
+        [{ text: 'OK' }]
+      );
       return;
     }
-    router.push('/home');
+
+    try {
+      // Save children data
+      await saveChildren(children);
+      router.push('/home');
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to save children information. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -58,7 +89,9 @@ export default function OnboardingScreen() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <Text style={styles.title}>Add Your Children</Text>
-          <Text style={styles.subtitle}>Enter details for each child</Text>
+          <Text style={styles.subtitle}>
+            Enter details for each child to personalize their learning journey
+          </Text>
 
           {children.map((child) => (
             <View key={child.id} style={styles.childContainer}>
@@ -66,11 +99,14 @@ export default function OnboardingScreen() {
                 childName={child.name}
                 onNameChange={(text) => updateChildName(child.id, text)}
                 onRemove={() => removeChild(child.id)}
+                showRemove={children.length > 1}
               />
               <Text style={styles.yearLabel}>Select year:</Text>
               <YearSelector
                 selectedYear={child.year}
-                onYearSelect={(year) => updateChildYear(child.id, year)}
+                onYearSelect={(yearId, yearName) =>
+                  updateChildYear(child.id, yearId, yearName)
+                }
               />
             </View>
           ))}
@@ -82,7 +118,7 @@ export default function OnboardingScreen() {
           <Pressable
             style={[
               styles.continueButton,
-              !children.every((child) => child.year) &&
+              !children.every((child) => child.yearId) &&
                 styles.continueButtonDisabled,
             ]}
             onPress={handleContinue}
@@ -116,14 +152,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.secondary,
     marginBottom: 24,
+    lineHeight: 22,
   },
   childContainer: {
     marginBottom: 24,
+    backgroundColor: colors.background.primary,
+    padding: 16,
+    borderRadius: commonStyles.borderRadius.medium,
+    ...commonStyles.shadow,
   },
   yearLabel: {
     fontSize: 16,
+    fontWeight: '500',
     color: colors.text.primary,
     marginBottom: 8,
+    marginTop: 16,
   },
   addButton: {
     padding: 16,

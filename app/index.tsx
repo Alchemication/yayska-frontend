@@ -1,16 +1,29 @@
 // app/index.tsx
+import { useEffect } from 'react';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '../src/theme/colors';
+import { getChildren } from '../src/utils/storage';
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
+  useEffect(() => {
+    const checkExistingChildren = async () => {
+      const savedChildren = await getChildren();
+      if (savedChildren && savedChildren.length > 0) {
+        router.push('/home');
+      } else {
+        console.log('No existing children found');
+      }
+    };
+    checkExistingChildren();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Optional: Decorative element using Irish colors */}
         <View style={styles.decorativeStripe}>
           <View
             style={[styles.stripe, { backgroundColor: colors.primary.green }]}
@@ -25,7 +38,7 @@ export default function WelcomeScreen() {
 
         <Text style={styles.title}>Fáilte go Yayska!</Text>
         <Text style={styles.subtitle}>
-          Supporting Irish parents with primary school subjects (with Yay!)
+          Supporting parents in Ireland with school subjects
         </Text>
 
         <Pressable
