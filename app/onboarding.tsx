@@ -13,7 +13,8 @@ import { useRouter } from 'expo-router';
 import { ChildInput } from '../src/components/Onboarding/ChildInput';
 import { YearSelector } from '../src/components/Onboarding/YearSelector';
 import { colors, commonStyles } from '../src/theme/colors';
-import { saveChildren } from '../src/utils/storage';
+import { useLocalSearchParams } from 'expo-router';
+import { saveChildren, addChildren } from '../src/utils/storage';
 
 type Child = {
   id: string;
@@ -23,16 +24,22 @@ type Child = {
 };
 
 export default function OnboardingScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: 'add' }>();
   const router = useRouter();
   const [children, setChildren] = useState<Child[]>([
-    { id: '1', name: '', year: null, yearId: null },
+    {
+      id: `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: '',
+      year: null,
+      yearId: null,
+    },
   ]);
 
   const addChild = () => {
     setChildren([
       ...children,
       {
-        id: (children.length + 1).toString(),
+        id: `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: '',
         year: null,
         yearId: null,
@@ -61,7 +68,6 @@ export default function OnboardingScreen() {
   };
 
   const handleContinue = async () => {
-    // Validate that all children have years selected
     if (children.some((child) => !child.yearId)) {
       Alert.alert(
         'Missing Information',
@@ -72,9 +78,12 @@ export default function OnboardingScreen() {
     }
 
     try {
-      // Save children data
-      await saveChildren(children);
-      router.push('/home');
+      if (mode === 'add') {
+        await addChildren(children);
+      } else {
+        await saveChildren(children);
+      }
+      router.replace('/home');
     } catch (error) {
       Alert.alert(
         'Error',
@@ -88,10 +97,27 @@ export default function OnboardingScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={styles.title}>Add Your Children</Text>
-          <Text style={styles.subtitle}>
-            Enter details for each child to personalize their learning journey
+          <Text style={styles.title}>
+            {mode === 'add' ? 'Add More Children' : 'Welcome to Yayska!'}
           </Text>
+          <Text style={styles.subtitle}>
+            {mode === 'add'
+              ? 'Add details for additional children.'
+              : "Let's personalize your experience by adding your children's details."}
+          </Text>
+
+          <View style={styles.instructionsCard}>
+            <Text style={styles.instructionsTitle}>Getting Started:</Text>
+            <Text style={styles.instructionText}>
+              1. Add each child's name (optional)
+            </Text>
+            <Text style={styles.instructionText}>
+              2. Select their current school year
+            </Text>
+            <Text style={styles.instructionText}>
+              3. Add more children if needed
+            </Text>
+          </View>
 
           {children.map((child) => (
             <View key={child.id} style={styles.childContainer}>
@@ -123,7 +149,9 @@ export default function OnboardingScreen() {
             ]}
             onPress={handleContinue}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={styles.continueButtonText}>
+              Continue to Learning Goals
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -153,6 +181,25 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginBottom: 24,
     lineHeight: 22,
+  },
+  instructionsCard: {
+    backgroundColor: colors.background.primary,
+    padding: 16,
+    borderRadius: commonStyles.borderRadius.medium,
+    marginBottom: 24,
+    ...commonStyles.shadow,
+  },
+  instructionsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 12,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   childContainer: {
     marginBottom: 24,

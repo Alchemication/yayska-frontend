@@ -1,3 +1,4 @@
+// src/utils/storage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Child = {
@@ -16,6 +17,7 @@ export async function saveChildren(children: Child[]): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEYS.CHILDREN, JSON.stringify(children));
   } catch (error) {
     console.error('Error saving children:', error);
+    throw error;
   }
 }
 
@@ -29,10 +31,25 @@ export async function getChildren(): Promise<Child[] | null> {
   }
 }
 
+export async function addChildren(newChildren: Child[]): Promise<void> {
+  try {
+    const existingChildren = (await getChildren()) || [];
+    const allChildren = [...existingChildren, ...newChildren];
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.CHILDREN,
+      JSON.stringify(allChildren)
+    );
+  } catch (error) {
+    console.error('Error adding children:', error);
+    throw error;
+  }
+}
+
 export async function clearChildren(): Promise<void> {
   try {
     await AsyncStorage.removeItem(STORAGE_KEYS.CHILDREN);
   } catch (error) {
+    console.error('Error clearing children:', error);
     throw error;
   }
 }
