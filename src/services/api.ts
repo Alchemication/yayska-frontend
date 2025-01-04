@@ -9,6 +9,10 @@ import {
   ConceptsResponse,
 } from '../types/curriculum';
 import {
+  LearningPathsResponse,
+  SubjectLearningPath,
+} from '../types/curriculum';
+import {
   SchoolYear,
   SchoolYearsResponse,
   EducationLevel,
@@ -93,4 +97,13 @@ export const api = {
 
   getConceptMetadata: (conceptId: number): Promise<ConceptMetadata> =>
     fetchAPI<ConceptMetadata>(`/concepts/${conceptId}/metadata`),
+
+  getSubjectLearningPaths: async (
+    yearId: number
+  ): Promise<SubjectLearningPath[]> => {
+    const response = await fetchAPI<LearningPathsResponse>(
+      `/curriculum/subjects/${yearId}/learning_paths`
+    );
+    return response.subjects;
+  },
 };

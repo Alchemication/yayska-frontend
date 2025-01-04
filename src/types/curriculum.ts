@@ -85,3 +85,28 @@ export interface TopicsResponse {
 export interface ConceptsResponse {
   concepts: Concept[];
 }
+
+export interface KeyConcept {
+  id: number;
+  name: string;
+  description: string;
+}
+
+export interface LearningGoal {
+  id: number;
+  topic: string;
+  what_child_will_learn: string;
+  complexity_level: number;
+  complexity_description: string;
+  key_concepts: KeyConcept[];
+}
+
+export interface SubjectLearningPath {
+  id: number;
+  subject_name: string;
+  learning_goals: Record<number, LearningGoal>;
+}
+
+export interface LearningPathsResponse {
+  subjects: SubjectLearningPath[];
+}
