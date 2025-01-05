@@ -36,9 +36,10 @@ export default function WelcomeScreen() {
           />
         </View>
 
-        <Text style={styles.title}>Fáilte go Yayska!</Text>
+        <Text style={styles.title}>Parent's Guide to School Success</Text>
         <Text style={styles.subtitle}>
-          Supporting parents in Ireland with school subjects
+          Know more. Help better.{' '}
+          <Text style={styles.brandName}>With Yayska!</Text>
         </Text>
 
         <Pressable
@@ -84,20 +85,23 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: 12,
     textAlign: 'center',
+    maxWidth: '90%',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 20,
     textAlign: 'center',
     color: colors.text.secondary,
-    marginBottom: 40,
-    maxWidth: '80%',
+    marginBottom: 48,
+    maxWidth: '85%',
+    lineHeight: 28,
   },
   button: {
     backgroundColor: colors.primary.green,
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
     paddingVertical: 16,
     borderRadius: commonStyles.borderRadius.medium,
     ...commonStyles.shadow,
+    minWidth: 200,
   },
   buttonPressed: {
     backgroundColor: colors.primary.greenDark,
@@ -106,5 +110,10 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     fontSize: 18,
     fontWeight: '600',
+  },
+  brandName: {
+    color: colors.primary.orange,
+    fontWeight: '600',
+    fontStyle: 'italic',
   },
 });
