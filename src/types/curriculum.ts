@@ -1,29 +1,8 @@
 // src/types/curriculum.ts
-export interface Subject {
-  id: number;
-  subject_name: string;
-  area_name: string;
-}
-
-export interface Topic {
-  id: number;
-  strand_name: string;
-}
-
-export interface Concept {
-  id: number;
-  concept_name: string;
-  description: string;
-  difficulty_level: number;
-  topic_id: number;
-}
-
-// You might want to add more specific types based on your API responses
 export interface ConceptMetadata {
   concept_id: number;
   concept_name: string;
   concept_description: string;
-  difficulty_level: number;
   why_important: {
     future_learning: string;
     practical_value: string;
@@ -74,37 +53,24 @@ interface IrishTerm {
   pronunciation: string;
 }
 
-export interface SubjectsResponse {
-  subjects: Subject[];
-}
-
-export interface TopicsResponse {
-  strands: Topic[];
-}
-
-export interface ConceptsResponse {
-  concepts: Concept[];
-}
-
-export interface KeyConcept {
-  id: number;
-  name: string;
+export interface Complexity {
+  level: number;
   description: string;
 }
 
-export interface LearningGoal {
+export interface ConceptInPath {
   id: number;
-  topic: string;
-  what_child_will_learn: string;
-  complexity_level: number;
-  complexity_description: string;
-  key_concepts: KeyConcept[];
+  name: string;
+  description: string;
+  complexity: Complexity;
+  learning_objectives: string[];
+  display_order: number;
 }
 
 export interface SubjectLearningPath {
   id: number;
-  subject_name: string;
-  learning_goals: Record<number, LearningGoal>;
+  name: string;
+  concepts: ConceptInPath[];
 }
 
 export interface LearningPathsResponse {

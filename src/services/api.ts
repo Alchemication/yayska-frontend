@@ -1,16 +1,8 @@
 // src/services/api.ts
 import {
-  Subject,
-  Topic,
-  Concept,
-  ConceptMetadata,
-  SubjectsResponse,
-  TopicsResponse,
-  ConceptsResponse,
-} from '../types/curriculum';
-import {
-  LearningPathsResponse,
   SubjectLearningPath,
+  LearningPathsResponse,
+  ConceptMetadata,
 } from '../types/curriculum';
 import {
   SchoolYear,
@@ -70,29 +62,6 @@ export const api = {
       `/education/education-levels/${levelId}/years`
     );
     return response.school_years;
-  },
-  getSubjects: async (yearId: number): Promise<Subject[]> => {
-    const response = await fetchAPI<SubjectsResponse>(
-      `/curriculum/subjects?year_id=${yearId}`
-    );
-    return response.subjects;
-  },
-
-  getSubjectTopics: async (subjectId: number): Promise<Topic[]> => {
-    const response = await fetchAPI<TopicsResponse>(
-      `/curriculum/subjects/${subjectId}/strands`
-    );
-    return response.strands;
-  },
-
-  getTopicConcepts: async (
-    topicId: number,
-    yearId: number
-  ): Promise<Concept[]> => {
-    const response = await fetchAPI<ConceptsResponse>(
-      `/concepts/units/${topicId}/concepts?year_id=${yearId}`
-    );
-    return response.concepts;
   },
 
   getConceptMetadata: (conceptId: number): Promise<ConceptMetadata> =>

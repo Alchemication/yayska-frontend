@@ -17,7 +17,7 @@ import { colors, commonStyles } from '../src/theme/colors';
 import { getChildren, clearChildren, Child } from '../src/utils/storage';
 import { LearningGoalCard } from '../src/components/Learning/LearningGoalCard';
 import { api } from '../src/services/api';
-import { SubjectLearningPath } from '../src/types/curriculum';
+import { SubjectLearningPath, ConceptInPath } from '../src/types/curriculum';
 
 export default function HomeScreen() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -25,6 +25,9 @@ export default function HomeScreen() {
   const [subjects, setSubjects] = useState<SubjectLearningPath[]>([]);
   const [loading, setLoading] = useState(true);
   const [showChildrenMenu, setShowChildrenMenu] = useState(false);
+  const [expandedSubjectId, setExpandedSubjectId] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     loadChildren();
@@ -210,12 +213,40 @@ export default function HomeScreen() {
           ) : (
             subjects.map((subject) => (
               <View key={subject.id} style={styles.subjectSection}>
-                <Text style={styles.subjectTitle}>{subject.subject_name}</Text>
-                {Object.values(subject.learning_goals)
-                  .sort((a, b) => a.complexity_level - b.complexity_level)
-                  .map((goal) => (
-                    <LearningGoalCard key={goal.id} goal={goal} />
-                  ))}
+                <Pressable
+                  style={styles.subjectHeader}
+                  onPress={() =>
+                    setExpandedSubjectId(
+                      expandedSubjectId === subject.id ? null : subject.id
+                    )
+                  }
+                >
+                  <Text style={styles.subjectTitle}>{subject.name}</Text>
+                  <View style={styles.subjectStats}>
+                    <Text style={styles.subjectStatsText}>
+                      {subject.concepts.length} concepts
+                    </Text>
+                    <Ionicons
+                      name={
+                        expandedSubjectId === subject.id
+                          ? 'chevron-up'
+                          : 'chevron-down'
+                      }
+                      size={24}
+                      color={colors.text.secondary}
+                    />
+                  </View>
+                </Pressable>
+
+                {expandedSubjectId === subject.id && (
+                  <View style={styles.conceptsList}>
+                    {subject.concepts
+                      .sort((a, b) => a.display_order - b.display_order)
+                      .map((concept) => (
+                        <LearningGoalCard key={concept.id} concept={concept} />
+                      ))}
+                  </View>
+                )}
               </View>
             ))
           )}
@@ -317,12 +348,33 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   subjectSection: {
-    marginBottom: 24,
+    marginBottom: 16,
+    backgroundColor: colors.background.primary,
+    borderRadius: commonStyles.borderRadius.medium,
+    ...commonStyles.shadow,
+  },
+  subjectHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
   },
   subjectTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
     color: colors.text.primary,
-    marginBottom: 16,
+  },
+  subjectStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  subjectStatsText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  conceptsList: {
+    padding: 16,
+    paddingTop: 0,
   },
 });

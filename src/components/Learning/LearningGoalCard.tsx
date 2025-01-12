@@ -3,15 +3,15 @@ import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { colors, commonStyles } from '../../theme/colors';
-import { LearningGoal } from '../../types/curriculum';
+import { ConceptInPath } from '../../types/curriculum';
 import { ComplexityIndicator } from './ComplexityIndicator';
-import { Ionicons } from '@expo/vector-icons'; // Make sure to install @expo/vector-icons if not already installed
+import { Ionicons } from '@expo/vector-icons';
 
 interface LearningGoalCardProps {
-  goal: LearningGoal;
+  concept: ConceptInPath;
 }
 
-export function LearningGoalCard({ goal }: LearningGoalCardProps) {
+export function LearningGoalCard({ concept }: LearningGoalCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -21,13 +21,13 @@ export function LearningGoalCard({ goal }: LearningGoalCardProps) {
         onPress={() => setIsExpanded(!isExpanded)}
       >
         <View style={styles.headerContent}>
-          <ComplexityIndicator level={goal.complexity_level} />
+          <ComplexityIndicator level={concept.complexity.level} />
 
-          <Text style={styles.topic}>{goal.topic}</Text>
+          <Text style={styles.topic}>{concept.name}</Text>
 
           <View style={styles.learningSection}>
-            <Text style={styles.sectionTitle}>What your child will learn:</Text>
-            <Text style={styles.outcomeText}>{goal.what_child_will_learn}</Text>
+            <Text style={styles.sectionTitle}>Description:</Text>
+            <Text style={styles.outcomeText}>{concept.description}</Text>
           </View>
         </View>
 
@@ -41,27 +41,24 @@ export function LearningGoalCard({ goal }: LearningGoalCardProps) {
       </Pressable>
 
       {isExpanded && (
-        <View style={styles.conceptsSection}>
-          <Text style={styles.sectionTitle}>Key concepts to master:</Text>
-          {goal.key_concepts.map((concept) => (
-            <Pressable
-              key={concept.id}
-              style={styles.conceptCard}
-              onPress={() => router.push(`/concept/${concept.id}`)}
-            >
-              <View style={styles.conceptHeader}>
-                <Text style={styles.conceptName}>{concept.name}</Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={16}
-                  color={colors.primary.green}
-                />
-              </View>
-              <Text style={styles.conceptDescription}>
-                {concept.description}
-              </Text>
-            </Pressable>
+        <View style={styles.objectivesSection}>
+          <Text style={styles.sectionTitle}>Learning Objectives:</Text>
+          {concept.learning_objectives.map((objective, index) => (
+            <View key={index} style={styles.objectiveItem}>
+              <Text style={styles.objectiveText}>• {objective}</Text>
+            </View>
           ))}
+          <Pressable
+            style={styles.detailsButton}
+            onPress={() => router.push(`/concept/${concept.id}`)}
+          >
+            <Text style={styles.detailsButtonText}>View Details</Text>
+            <Ionicons
+              name="arrow-forward"
+              size={16}
+              color={colors.primary.green}
+            />
+          </Pressable>
         </View>
       )}
     </View>
@@ -86,7 +83,7 @@ const styles = StyleSheet.create({
   expandButton: {
     padding: 8,
     marginLeft: 8,
-    marginTop: -8, // Adjust to align with header
+    marginTop: -8,
   },
   topic: {
     fontSize: 18,
@@ -95,7 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   learningSection: {
-    marginBottom: 8, // Reduced from 16 since we're in header now
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 16,
@@ -108,32 +105,32 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     lineHeight: 20,
   },
-  conceptsSection: {
+  objectivesSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: colors.neutral.lightGrey,
-    gap: 8,
   },
-  conceptCard: {
+  objectiveItem: {
+    marginBottom: 8,
+  },
+  objectiveText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    lineHeight: 20,
+  },
+  detailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.background.secondary,
     padding: 12,
     borderRadius: commonStyles.borderRadius.small,
+    marginTop: 12,
   },
-  conceptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  conceptName: {
+  detailsButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.text.primary,
-    flex: 1,
-  },
-  conceptDescription: {
-    fontSize: 12,
-    color: colors.text.secondary,
+    color: colors.primary.green,
   },
 });

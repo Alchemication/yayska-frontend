@@ -1,4 +1,6 @@
-# Yayska - Supporting Parents with Primary School Mathematics
+# Yayska - Parent's Guide to School Success
+
+Know more. Help better.
 
 ## About Yayska
 

@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: commonStyles.borderRadius.medium,
     ...commonStyles.shadow,
-    minWidth: 200,
   },
   buttonPressed: {
     backgroundColor: colors.primary.greenDark,
