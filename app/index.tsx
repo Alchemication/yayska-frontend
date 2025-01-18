@@ -38,7 +38,7 @@ export default function WelcomeScreen() {
 
         <Text style={styles.title}>Parent's Guide to School Success</Text>
         <Text style={styles.subtitle}>
-          Know more. Help better.{' '}
+          Know more. Help better.{'\n'}
           <Text style={styles.brandName}>With Yayska!</Text>
         </Text>
 
