@@ -4,12 +4,15 @@ import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '../src/theme/colors';
-import { getChildren } from '../src/utils/storage';
+import { getChildren, ensureChildrenHaveYearNames } from '../src/utils/storage';
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   useEffect(() => {
+    // Ensure all stored children have year names
+    ensureChildrenHaveYearNames();
+
     const checkExistingChildren = async () => {
       const savedChildren = await getChildren();
       if (savedChildren && savedChildren.length > 0) {

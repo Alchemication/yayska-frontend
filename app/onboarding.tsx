@@ -1,5 +1,5 @@
 // app/onboarding.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,6 +15,12 @@ import { YearSelector } from '../src/components/Onboarding/YearSelector';
 import { colors, commonStyles } from '../src/theme/colors';
 import { useLocalSearchParams } from 'expo-router';
 import { saveChildren, addChildren } from '../src/utils/storage';
+import {
+  EDUCATION_LEVELS,
+  SCHOOL_YEARS,
+  getSchoolYearsByLevelId,
+} from '../src/constants/education';
+import { enrichChildWithYearName } from '../src/utils/educationUtils';
 
 type Child = {
   id: string;
@@ -34,6 +40,28 @@ export default function OnboardingScreen() {
       yearId: null,
     },
   ]);
+
+  const [educationLevels, setEducationLevels] = useState<EducationLevel[]>([]);
+  const [schoolYears, setSchoolYears] = useState<SchoolYear[]>([]);
+  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setEducationLevels(EDUCATION_LEVELS);
+
+    if (EDUCATION_LEVELS.length === 1) {
+      setSelectedLevelId(EDUCATION_LEVELS[0].id);
+      setSchoolYears(getSchoolYearsByLevelId(EDUCATION_LEVELS[0].id));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedLevelId) {
+      setLoading(true);
+      setSchoolYears(getSchoolYearsByLevelId(selectedLevelId));
+      setLoading(false);
+    }
+  }, [selectedLevelId]);
 
   const addChild = () => {
     setChildren([
@@ -91,6 +119,16 @@ export default function OnboardingScreen() {
         [{ text: 'OK' }]
       );
     }
+  };
+
+  const handleSaveChild = async () => {
+    // ... your existing saving logic
+
+    // When creating a child, use enrichChildWithYearName
+    const newChild = await saveChild(name, selectedYearId);
+    const enrichedChild = enrichChildWithYearName(newChild);
+
+    // ... rest of saving logic
   };
 
   return (

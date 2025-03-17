@@ -1,5 +1,4 @@
-// app/home.tsx
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -15,37 +14,35 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, commonStyles } from '../src/theme/colors';
 import { getChildren, clearChildren, Child } from '../src/utils/storage';
+import { LearningGoalCard } from '../src/components/Learning/LearningGoalCard';
 import { api } from '../src/services/api';
-import {
-  MonthlyConceptsCarousel,
-  CurriculumPlan,
-} from '../src/components/Learning/MonthlyConceptsCarousel';
-import { updateChildrenWithYearNames } from '../src/utils/educationUtils';
+import { SubjectLearningPath, ConceptInPath } from '../src/types/curriculum';
 
-export default function HomeScreen() {
+// Let's first check what props the LearningGoalCard expects
+interface ConceptCardProps {
+  concept: ConceptInPath;
+  onPress?: () => void;
+}
+
+export default function ExploreScreen() {
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+  const [subjects, setSubjects] = useState<SubjectLearningPath[]>([]);
   const [loading, setLoading] = useState(true);
   const [showChildrenMenu, setShowChildrenMenu] = useState(false);
-  const [curriculumPlans, setCurriculumPlans] = useState<CurriculumPlan[]>([]);
-  const [isSummerMode, setIsSummerMode] = useState(false);
+  const [expandedSubjectId, setExpandedSubjectId] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
-    updateChildrenWithYearNames();
     loadChildren();
   }, []);
 
   useEffect(() => {
-    if (children.length > 0) {
-      // Get year IDs for all children
-      const yearIds = children
-        .map((child) => child.yearId)
-        .filter(Boolean) as number[];
-      if (yearIds.length > 0) {
-        loadMonthlyCurriculum(yearIds);
-      }
+    if (selectedChild?.yearId) {
+      loadSubjectPaths();
     }
-  }, [children]);
+  }, [selectedChild]);
 
   const loadChildren = async () => {
     const savedChildren = await getChildren();
@@ -58,17 +55,18 @@ export default function HomeScreen() {
     }
   };
 
-  const loadMonthlyCurriculum = async (yearIds: number[]) => {
+  const loadSubjectPaths = async () => {
+    if (!selectedChild?.yearId) return;
+
     try {
       setLoading(true);
-      const response = await api.getMonthlyCurriculum(yearIds);
-      setCurriculumPlans(response.curriculum_plans);
-      setIsSummerMode(response.is_summer_mode);
+      const data = await api.getSubjectLearningPaths(selectedChild.yearId);
+      setSubjects(data);
     } catch (error) {
-      console.error('Error loading monthly curriculum:', error);
+      console.error('Error loading learning paths:', error);
       Alert.alert(
         'Error',
-        'Failed to load monthly curriculum. Please try again.',
+        'Failed to load learning content. Please try again.',
         [{ text: 'OK' }]
       );
     } finally {
@@ -120,8 +118,8 @@ export default function HomeScreen() {
     }
   };
 
-  const navigateToExplore = () => {
-    router.push('/explore' as any);
+  const navigateToConcept = (conceptId: number) => {
+    router.push(`/concept/${conceptId}`);
   };
 
   const toggleChildrenMenu = () => {
@@ -133,17 +131,33 @@ export default function HomeScreen() {
     setShowChildrenMenu(false);
   };
 
+  const toggleSubjectExpansion = (subjectId: number) => {
+    if (expandedSubjectId === subjectId) {
+      setExpandedSubjectId(null);
+    } else {
+      setExpandedSubjectId(subjectId);
+    }
+  };
+
+  // Header with back button to home
+  const Header = () => (
+    <View style={styles.header}>
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        <Text style={styles.backButtonText}>Home</Text>
+      </Pressable>
+      <Text style={styles.headerTitle}>Explore All</Text>
+      <View style={styles.headerRightPlaceholder} />
+    </View>
+  );
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.primary }}
     >
+      <Header />
       <View style={styles.container}>
-        {/* Header with title */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Yayska</Text>
-        </View>
-
-        {/* Child selector with school year in brackets */}
+        {/* Child selector */}
         <Pressable
           style={styles.childSelector}
           onPress={toggleChildrenMenu}
@@ -151,17 +165,7 @@ export default function HomeScreen() {
         >
           <View style={styles.childSelectorContent}>
             <Text style={styles.selectedChildName}>
-              {selectedChild ? (
-                <>
-                  {selectedChild.name}
-                  {/* Show school year in brackets if available */}
-                  {selectedChild.year && (
-                    <Text style={styles.yearText}> ({selectedChild.year})</Text>
-                  )}
-                </>
-              ) : (
-                'Select Child'
-              )}
+              {selectedChild?.name || 'Child'}
             </Text>
             {children.length > 1 && (
               <Ionicons
@@ -189,7 +193,6 @@ export default function HomeScreen() {
                   ]}
                 >
                   {child.name}
-                  {child.year && <Text> ({child.year})</Text>}
                 </Text>
               </Pressable>
             ))}
@@ -201,32 +204,49 @@ export default function HomeScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
         >
-          {/* Monthly Curriculum Carousel - simplified header */}
-          <MonthlyConceptsCarousel
-            curriculumPlans={curriculumPlans}
-            selectedYearId={selectedChild?.yearId || undefined}
-            isLoading={loading}
-            onViewAllConcepts={navigateToExplore}
-          />
-
-          {/* Explore All Card */}
-          <Pressable style={styles.exploreCard} onPress={navigateToExplore}>
-            <View style={styles.exploreCardContent}>
-              <View>
-                <Text style={styles.exploreCardTitle}>
-                  Explore All Subjects
-                </Text>
-                <Text style={styles.exploreCardSubtitle}>
-                  Browse the complete curriculum by subject
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward-circle"
-                size={32}
-                color={colors.primary.green}
-              />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary.green} />
+              <Text style={styles.loadingText}>Loading content...</Text>
             </View>
-          </Pressable>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Subjects</Text>
+              <View style={styles.subjectsContainer}>
+                {subjects.map((subject) => (
+                  <View key={subject.id} style={styles.subjectCard}>
+                    <Pressable
+                      style={styles.subjectHeader}
+                      onPress={() => toggleSubjectExpansion(subject.id)}
+                    >
+                      <Text style={styles.subjectTitle}>{subject.name}</Text>
+                      <Ionicons
+                        name={
+                          expandedSubjectId === subject.id
+                            ? 'chevron-up'
+                            : 'chevron-down'
+                        }
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                    </Pressable>
+                    {expandedSubjectId === subject.id && (
+                      <View style={styles.conceptsContainer}>
+                        {subject.concepts.map((concept) => (
+                          <Pressable
+                            key={concept.id}
+                            onPress={() => navigateToConcept(concept.id)}
+                          >
+                            <LearningGoalCard concept={concept} />
+                          </Pressable>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
 
           {/* Debug reset button */}
           <View style={{ marginTop: 40 }}>
@@ -246,14 +266,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   header: {
-    backgroundColor: colors.background.secondary,
-    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background.secondary,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary.green,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    marginLeft: 4,
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+  headerRightPlaceholder: {
+    width: 70, // Balance the header
   },
   childSelector: {
     backgroundColor: colors.background.secondary,
@@ -269,10 +304,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: colors.text.primary,
-  },
-  yearText: {
-    fontWeight: '400',
-    color: colors.text.secondary,
   },
   childrenMenu: {
     backgroundColor: colors.background.secondary,
@@ -297,7 +328,7 @@ const styles = StyleSheet.create({
   childMenuItem: {
     padding: 14,
     borderTopWidth: 1,
-    borderTopColor: '#eaeaea',
+    borderTopColor: colors.neutral.lightGrey,
   },
   childMenuItemText: {
     fontSize: 16,
@@ -314,11 +345,30 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  exploreCard: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.text.secondary,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: colors.text.primary,
+  },
+  subjectsContainer: {
+    gap: 16,
+  },
+  subjectCard: {
     backgroundColor: colors.background.secondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    borderRadius: 8,
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -334,20 +384,21 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  exploreCardContent: {
+  subjectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 16,
   },
-  exploreCardTitle: {
+  subjectTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
     color: colors.text.primary,
   },
-  exploreCardSubtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
+  conceptsContainer: {
+    padding: 16,
+    paddingTop: 0,
+    gap: 16,
   },
   resetButton: {
     backgroundColor: colors.accent.error,

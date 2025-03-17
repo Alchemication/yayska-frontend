@@ -1,12 +1,13 @@
 // src/utils/storage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getYearNameById } from '../constants/education';
 
-export type Child = {
+export interface Child {
   id: string;
   name: string;
-  year: string | null;
-  yearId: number | null;
-};
+  yearId: number;
+  year?: string;
+}
 
 const STORAGE_KEYS = {
   CHILDREN: 'yayska_children',
@@ -53,3 +54,56 @@ export async function clearChildren(): Promise<void> {
     throw error;
   }
 }
+
+export const saveChild = async (name: string, yearId: number): Promise<Child> => {
+  try {
+    const children = await getChildren() || [];
+    
+    const newChild: Child = {
+      id: generateId(),
+      name,
+      yearId,
+      year: getYearNameById(yearId)
+    };
+    
+    const updatedChildren = [...children, newChild];
+    await AsyncStorage.setItem(STORAGE_KEYS.CHILDREN, JSON.stringify(updatedChildren));
+    
+    return newChild;
+  } catch (error) {
+    console.error('Error saving child:', error);
+    throw error;
+  }
+};
+
+export const ensureChildrenHaveYearNames = async (): Promise<void> => {
+  try {
+    const children = await getChildren();
+    if (!children) return;
+    
+    let needsUpdate = false;
+    
+    const updatedChildren = children.map(child => {
+      if (!child.year && child.yearId) {
+        needsUpdate = true;
+        return {
+          ...child,
+          year: getYearNameById(child.yearId)
+        };
+      }
+      return child;
+    });
+    
+    if (needsUpdate) {
+      await AsyncStorage.setItem(STORAGE_KEYS.CHILDREN, JSON.stringify(updatedChildren));
+    }
+  } catch (error) {
+    console.error('Error updating children year names:', error);
+  }
+};
+
+  } catch (error) {
+    console.error('Error saving child:', error);
+    throw error;
+  }
+};

@@ -10,6 +10,12 @@ import {
   EducationLevel,
   EducationLevelsResponse,
 } from '../types/education';
+import { CurriculumPlan } from '../components/Learning/MonthlyConceptsCarousel';
+import {
+  EDUCATION_LEVELS,
+  SCHOOL_YEARS,
+  getSchoolYearsByLevelId,
+} from '../constants/education';
 
 const API_BASE_URL =
   process.env.NODE_ENV === 'production'
@@ -49,19 +55,19 @@ async function fetchAPI<T>(
   }
 }
 
+// Monthly curriculum response type
+interface MonthlyCurriculumResponse {
+  curriculum_plans: CurriculumPlan[];
+  is_summer_mode: boolean;
+}
+
 export const api = {
   getEducationLevels: async (): Promise<EducationLevel[]> => {
-    const response = await fetchAPI<EducationLevelsResponse>(
-      '/education/education-levels'
-    );
-    return response.levels;
+    return EDUCATION_LEVELS;
   },
 
   getSchoolYears: async (levelId: number): Promise<SchoolYear[]> => {
-    const response = await fetchAPI<SchoolYearsResponse>(
-      `/education/education-levels/${levelId}/years`
-    );
-    return response.school_years;
+    return getSchoolYearsByLevelId(levelId);
   },
 
   getConceptMetadata: (conceptId: number): Promise<ConceptMetadata> =>
@@ -74,5 +80,19 @@ export const api = {
       `/curriculum/subjects/${yearId}/learning_paths`
     );
     return response.subjects;
+  },
+
+  getMonthlyCurriculum: async (
+    yearIds: number[],
+    referenceMonth?: number
+  ): Promise<MonthlyCurriculumResponse> => {
+    const yearIdsParam = yearIds.join(',');
+    let url = `/concepts/monthly-curriculum?year_ids=${yearIdsParam}`;
+
+    if (referenceMonth !== undefined) {
+      url += `&reference_month=${referenceMonth}`;
+    }
+
+    return fetchAPI<MonthlyCurriculumResponse>(url);
   },
 };

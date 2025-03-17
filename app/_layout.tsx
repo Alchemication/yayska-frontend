@@ -35,6 +35,12 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen
+        name="explore"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="concept/[id]"
         options={{
           title: 'Concept Detail',
