@@ -1,4 +1,4 @@
-import { getChildren, setChildren, Child } from './storage';
+import { getChildren, Child, saveChildren } from './storage';
 import { getYearNameById } from '../constants/education';
 
 // Function to ensure all children have year names
@@ -21,7 +21,7 @@ export const updateChildrenWithYearNames = async (): Promise<void> => {
     });
 
     if (hasChanges) {
-      await setChildren(updatedChildren);
+      await saveChildren(updatedChildren);
     }
   } catch (error) {
     console.error('Error updating children with year names:', error);

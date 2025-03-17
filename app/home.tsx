@@ -21,6 +21,7 @@ import {
   CurriculumPlan,
 } from '../src/components/Learning/MonthlyConceptsCarousel';
 import { updateChildrenWithYearNames } from '../src/utils/educationUtils';
+import { getChildDisplayName } from '../src/utils/childDisplayUtils';
 
 export default function HomeScreen() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -143,7 +144,7 @@ export default function HomeScreen() {
           <Text style={styles.headerTitle}>Yayska</Text>
         </View>
 
-        {/* Child selector with school year in brackets */}
+        {/* Child selector with school year */}
         <Pressable
           style={styles.childSelector}
           onPress={toggleChildrenMenu}
@@ -151,17 +152,7 @@ export default function HomeScreen() {
         >
           <View style={styles.childSelectorContent}>
             <Text style={styles.selectedChildName}>
-              {selectedChild ? (
-                <>
-                  {selectedChild.name}
-                  {/* Show school year in brackets if available */}
-                  {selectedChild.year && (
-                    <Text style={styles.yearText}> ({selectedChild.year})</Text>
-                  )}
-                </>
-              ) : (
-                'Select Child'
-              )}
+              {getChildDisplayName(selectedChild)}
             </Text>
             {children.length > 1 && (
               <Ionicons

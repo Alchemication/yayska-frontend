@@ -15,7 +15,7 @@ import {
   EDUCATION_LEVELS,
   SCHOOL_YEARS,
   getSchoolYearsByLevelId,
-} from '../constants/education';
+} from '../utils/schoolYearUtils';
 
 const API_BASE_URL =
   process.env.NODE_ENV === 'production'
@@ -63,10 +63,12 @@ interface MonthlyCurriculumResponse {
 
 export const api = {
   getEducationLevels: async (): Promise<EducationLevel[]> => {
+    console.log('Using static education levels data');
     return EDUCATION_LEVELS;
   },
 
   getSchoolYears: async (levelId: number): Promise<SchoolYear[]> => {
+    console.log('Using static school years data');
     return getSchoolYearsByLevelId(levelId);
   },
 
