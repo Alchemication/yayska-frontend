@@ -245,7 +245,7 @@ export const MonthlyConceptsCarousel: React.FC<
           >
             <Ionicons
               name="chevron-back-circle"
-              size={28}
+              size={32}
               color={colors.primary.green}
             />
           </Pressable>
@@ -279,7 +279,7 @@ export const MonthlyConceptsCarousel: React.FC<
           >
             <Ionicons
               name="chevron-forward-circle"
-              size={28}
+              size={32}
               color={colors.primary.green}
             />
           </Pressable>
@@ -355,17 +355,17 @@ const styles = StyleSheet.create({
   focusStatement: {
     fontSize: 15,
     color: colors.text.secondary,
-    marginBottom: 12,
+    marginBottom: 10,
     fontStyle: 'italic',
   },
   conceptsSection: {
-    marginTop: 6,
+    marginTop: 10,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 6,
-    marginTop: 12,
+    marginTop: 0,
     color: colors.text.primary,
   },
   conceptItem: {
@@ -421,13 +421,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     zIndex: 10,
-    marginTop: -8, // Adjusted from -130 for the smaller card height
+    marginTop: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Add semi-transparent background
+    borderRadius: 20,
+    padding: 6,
   },
   navButtonLeft: {
-    left: 5,
+    left: 0,
   },
   navButtonRight: {
-    right: 5,
+    right: 0,
   },
   pagination: {
     flexDirection: 'row',
