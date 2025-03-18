@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     zIndex: 10,
-    marginTop: 160, // Adjusted from -130 for the smaller card height
+    marginTop: -8, // Adjusted from -130 for the smaller card height
   },
   navButtonLeft: {
     left: 5,
