@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { router } from 'expo-router';
+import { getSubjectColor } from '../../utils/subjects/subjectColors';
 
 // Types
 export interface MonthlyConceptData {
@@ -149,22 +150,36 @@ export const MonthlyConceptsCarousel: React.FC<
     router.push(`/concept/${conceptId}`);
   };
 
-  const ConceptItem = ({ concept }: { concept: MonthlyConceptData }) => (
-    <Pressable
-      style={styles.conceptItem}
-      onPress={() => navigateToConcept(concept.id)}
-    >
-      <View style={styles.conceptTitleRow}>
-        <Text style={styles.conceptName}>{concept.concept_name}</Text>
-        <Text style={styles.subjectName}>{concept.subject_name}</Text>
-      </View>
-      <Text style={styles.conceptDescription} numberOfLines={2}>
-        {concept.concept_description}
-      </Text>
-    </Pressable>
-  );
+  const ConceptItem = ({ concept }: { concept: MonthlyConceptData }) => {
+    // Get subject color using centralized utility
+    const subjectColor = getSubjectColor(concept.subject_name);
+
+    return (
+      <Pressable
+        style={styles.conceptItem}
+        onPress={() => navigateToConcept(concept.id)}
+      >
+        {/* Color indicator for subject */}
+        <View
+          style={[styles.subjectIndicator, { backgroundColor: subjectColor }]}
+        />
+
+        {/* Content area */}
+        <View style={styles.conceptContent}>
+          <Text style={styles.conceptName} numberOfLines={2}>
+            {concept.concept_name}
+          </Text>
+          <Text style={styles.subjectName}>{concept.subject_name}</Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   const renderMonthCard = (month: Month, index: number) => {
+    // Limit the number of essential and important concepts shown to prevent overcrowding
+    const essentialConceptsToShow = month.essential_concepts.slice(0, 5);
+    const importantConceptsToShow = month.important_concepts.slice(0, 3);
+
     return (
       <View
         key={month.month_name}
@@ -182,15 +197,23 @@ export const MonthlyConceptsCarousel: React.FC<
 
           <View style={styles.conceptsSection}>
             <Text style={styles.sectionTitle}>Essential Concepts</Text>
-            {month.essential_concepts.map((concept) => (
+            {essentialConceptsToShow.map((concept) => (
               <ConceptItem key={concept.id} concept={concept} />
             ))}
+            {month.essential_concepts.length > 5 && (
+              <Pressable
+                style={styles.viewMoreButton}
+                onPress={onViewAllConcepts}
+              >
+                <Text style={styles.viewMoreText}>View More</Text>
+              </Pressable>
+            )}
 
             {!month.month_name.includes('Review') &&
               month.important_concepts.length > 0 && (
                 <>
                   <Text style={styles.sectionTitle}>Important Concepts</Text>
-                  {month.important_concepts.slice(0, 3).map((concept) => (
+                  {importantConceptsToShow.map((concept) => (
                     <ConceptItem key={concept.id} concept={concept} />
                   ))}
 
@@ -212,18 +235,6 @@ export const MonthlyConceptsCarousel: React.FC<
 
   return (
     <View style={styles.container}>
-      <View style={styles.carouselHeader}>
-        <View style={{ flex: 1 }} />
-        <Pressable style={styles.exploreAllButton} onPress={onViewAllConcepts}>
-          <Text style={styles.exploreAllText}>Explore All</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={colors.primary.green}
-          />
-        </Pressable>
-      </View>
-
       <View style={styles.carouselWrapper}>
         {/* Previous button - only show if not at first card */}
         {activeIndex > 0 && (
@@ -300,19 +311,13 @@ export const MonthlyConceptsCarousel: React.FC<
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
-  },
-  carouselHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   carouselWrapper: {
     position: 'relative', // For positioning the navigation buttons
   },
   scrollContent: {
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
   cardContainer: {
     width: CARD_WIDTH,
@@ -338,141 +343,142 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    minHeight: 400, // Set a minimum height for consistency
   },
   monthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 8,
   },
   monthName: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text.primary,
   },
   focusStatement: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text.secondary,
-    marginBottom: 16,
+    marginBottom: 12,
     fontStyle: 'italic',
   },
   conceptsSection: {
-    marginTop: 8,
+    marginTop: 6,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  conceptItem: {
-    backgroundColor: colors.background.primary,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  conceptTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  conceptName: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 6,
+    marginTop: 12,
     color: colors.text.primary,
+  },
+  conceptItem: {
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 8,
+    marginBottom: 6,
+    minHeight: 62,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  subjectIndicator: {
+    width: 4,
+    backgroundColor: colors.primary.green,
+  },
+  conceptContent: {
     flex: 1,
+    justifyContent: 'space-between',
+    padding: 10,
+  },
+  conceptName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 3,
   },
   subjectName: {
-    fontSize: 12,
-    color: colors.primary.green,
+    fontSize: 11,
+    color: colors.text.secondary,
     fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   conceptDescription: {
     fontSize: 14,
     color: colors.text.secondary,
   },
   viewMoreButton: {
-    alignItems: 'center',
+    alignSelf: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary.green,
     marginTop: 8,
   },
   viewMoreText: {
-    fontSize: 14,
     color: colors.primary.green,
     fontWeight: '500',
-  },
-  loadingContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 200,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  errorContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 200,
-  },
-  errorText: {
-    marginBottom: 16,
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  exploreAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  exploreAllText: {
     fontSize: 14,
-    color: colors.primary.green,
-    fontWeight: '500',
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  paginationDotContainer: {
-    padding: 8, // Make hit area larger for better touch response
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.neutral.lightGrey,
-  },
-  paginationDotActive: {
-    backgroundColor: colors.primary.green,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
   },
   navButton: {
     position: 'absolute',
     top: '50%',
     zIndex: 10,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 20,
-    padding: 4,
-    marginTop: -20, // Half the height to center
+    marginTop: 160, // Adjusted from -130 for the smaller card height
   },
   navButtonLeft: {
     left: 5,
   },
   navButtonRight: {
     right: 5,
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  paginationDotContainer: {
+    padding: 8, // Larger hit area
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.background.tertiary,
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: colors.primary.green,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  loadingContainer: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: colors.text.secondary,
+    fontSize: 14,
+  },
+  errorContainer: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  errorText: {
+    marginBottom: 16,
+    color: colors.text.secondary,
+    fontSize: 16,
+  },
+  exploreButton: {
+    backgroundColor: colors.primary.green,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  exploreButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

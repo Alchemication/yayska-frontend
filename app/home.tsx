@@ -125,6 +125,14 @@ export default function HomeScreen() {
     router.push('/explore' as any);
   };
 
+  const showComingSoonAlert = (feature: string) => {
+    Alert.alert(
+      'Coming Soon',
+      `${feature} will be available in a future update!`,
+      [{ text: 'OK' }]
+    );
+  };
+
   const toggleChildrenMenu = () => {
     setShowChildrenMenu(!showChildrenMenu);
   };
@@ -139,30 +147,29 @@ export default function HomeScreen() {
       style={{ flex: 1, backgroundColor: colors.background.primary }}
     >
       <View style={styles.container}>
-        {/* Header with title */}
-        <View style={styles.header}>
+        {/* Compact Header with integrated child selector */}
+        <View style={styles.compactHeader}>
           <Text style={styles.headerTitle}>Yayska</Text>
+          <Pressable
+            style={styles.childSelector}
+            onPress={toggleChildrenMenu}
+            disabled={children.length <= 1}
+          >
+            <View style={styles.childSelectorContent}>
+              <Text style={styles.selectedChildName}>
+                {getChildDisplayName(selectedChild)}
+              </Text>
+              {children.length > 1 && (
+                <Ionicons
+                  name={showChildrenMenu ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={colors.text.primary}
+                  style={styles.childSelectorIcon}
+                />
+              )}
+            </View>
+          </Pressable>
         </View>
-
-        {/* Child selector with school year */}
-        <Pressable
-          style={styles.childSelector}
-          onPress={toggleChildrenMenu}
-          disabled={children.length <= 1}
-        >
-          <View style={styles.childSelectorContent}>
-            <Text style={styles.selectedChildName}>
-              {getChildDisplayName(selectedChild)}
-            </Text>
-            {children.length > 1 && (
-              <Ionicons
-                name={showChildrenMenu ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color={colors.text.primary}
-              />
-            )}
-          </View>
-        </Pressable>
 
         {/* Children dropdown */}
         {showChildrenMenu && (
@@ -192,39 +199,60 @@ export default function HomeScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
         >
-          {/* Monthly Curriculum Carousel - simplified header */}
-          <MonthlyConceptsCarousel
-            curriculumPlans={curriculumPlans}
-            selectedYearId={selectedChild?.yearId || undefined}
-            isLoading={loading}
-            onViewAllConcepts={navigateToExplore}
-          />
-
-          {/* Explore All Card */}
-          <Pressable style={styles.exploreCard} onPress={navigateToExplore}>
-            <View style={styles.exploreCardContent}>
-              <View>
-                <Text style={styles.exploreCardTitle}>
-                  Explore All Subjects
-                </Text>
-                <Text style={styles.exploreCardSubtitle}>
-                  Browse the complete curriculum by subject
-                </Text>
-              </View>
+          {/* Quick Actions Row */}
+          <View style={styles.quickActionsRow}>
+            <Pressable
+              style={styles.quickActionButton}
+              onPress={navigateToExplore}
+            >
               <Ionicons
-                name="chevron-forward-circle"
-                size={32}
+                name="grid-outline"
+                size={18}
                 color={colors.primary.green}
               />
-            </View>
-          </Pressable>
+              <Text style={styles.quickActionText}>Explore All</Text>
+            </Pressable>
 
-          {/* Debug reset button */}
-          <View style={{ marginTop: 40 }}>
-            <Pressable style={styles.resetButton} onPress={handleReset}>
-              <Text style={styles.resetButtonText}>Reset All Data</Text>
+            <Pressable
+              style={styles.quickActionButton}
+              onPress={() => showComingSoonAlert('AI Chat')}
+            >
+              <Ionicons
+                name="chatbubble-outline"
+                size={18}
+                color={colors.primary.green}
+              />
+              <Text style={styles.quickActionText}>AI Chat</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.quickActionButton}
+              onPress={() => showComingSoonAlert('Progress tracking')}
+            >
+              <Ionicons
+                name="bar-chart-outline"
+                size={18}
+                color={colors.primary.green}
+              />
+              <Text style={styles.quickActionText}>Progress</Text>
             </Pressable>
           </View>
+
+          {/* Monthly Curriculum Carousel - directly embedded without extra header */}
+          <View style={styles.carouselContainer}>
+            <Text style={styles.sectionTitle}>This Month's Learning</Text>
+            <MonthlyConceptsCarousel
+              curriculumPlans={curriculumPlans}
+              selectedYearId={selectedChild?.yearId || undefined}
+              isLoading={loading}
+              onViewAllConcepts={navigateToExplore}
+            />
+          </View>
+
+          {/* Debug reset button - moved to bottom and made less prominent */}
+          <Pressable style={styles.resetButton} onPress={handleReset}>
+            <Text style={styles.resetButtonText}>Reset All Data</Text>
+          </Pressable>
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -236,38 +264,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
-  header: {
+  compactHeader: {
     backgroundColor: colors.background.secondary,
-    padding: 16,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary.green,
-  },
-  childSelector: {
-    backgroundColor: colors.background.secondary,
-    padding: 16,
-    marginBottom: 1,
-  },
-  childSelectorContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.primary.green,
+  },
+  childSelector: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: colors.background.tertiary,
+  },
+  childSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   selectedChildName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
   },
-  yearText: {
-    fontWeight: '400',
-    color: colors.text.secondary,
+  childSelectorIcon: {
+    marginLeft: 4,
   },
   childrenMenu: {
     backgroundColor: colors.background.secondary,
-    marginBottom: 16,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
     ...Platform.select({
@@ -286,7 +315,7 @@ const styles = StyleSheet.create({
     }),
   },
   childMenuItem: {
-    padding: 14,
+    padding: 12,
     borderTopWidth: 1,
     borderTopColor: '#eaeaea',
   },
@@ -303,52 +332,52 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 24,
   },
-  exploreCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-      web: {
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      },
-    }),
-  },
-  exploreCardContent: {
+  quickActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 16,
   },
-  exploreCardTitle: {
+  quickActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  quickActionText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.text.primary,
+    marginLeft: 4,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 12,
     color: colors.text.primary,
   },
-  exploreCardSubtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
+  carouselContainer: {
+    marginBottom: 8,
   },
   resetButton: {
-    backgroundColor: colors.accent.error,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    marginTop: 30,
+    backgroundColor: 'transparent',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: colors.accent.error,
   },
   resetButtonText: {
-    color: colors.background.primary,
-    fontWeight: '600',
+    color: colors.accent.error,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
