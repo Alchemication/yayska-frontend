@@ -15,13 +15,8 @@
       "dest": "/dist/static/$1"
     },
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/dist/index.html",
-      "status": 200
+      "dest": "/dist/index.html"
     }
-  ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  ]
 }
