@@ -107,7 +107,9 @@ export default function WelcomeScreen() {
             />
           </View>
 
-          <Text style={styles.title}>Parent's Guide to School Success</Text>
+          <Text style={styles.title}>
+            -- Parent's Guide to School Success --
+          </Text>
           <Text style={styles.subtitle}>
             <Text style={styles.brandName}>Know more. Help better.</Text>
           </Text>
