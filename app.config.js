@@ -29,6 +29,11 @@ module.exports = {
   },
   web: {
     favicon: './assets/images/favicon.png',
+    bundler: 'metro',
+    output: 'static',
+    rewrite: {
+      '/auth/google/callback': '/',
+    },
   },
   extra: {
     // These values are read from the process.env at build time

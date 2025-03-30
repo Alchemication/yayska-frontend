@@ -15,6 +15,10 @@
       "dest": "/dist/static/$1"
     },
     {
+      "src": "/auth/google/callback(.*)",
+      "dest": "/dist/index.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/dist/index.html"
     }

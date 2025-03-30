@@ -177,11 +177,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Login function
   const login = async () => {
     try {
-      // Generate a random state string for PKCE
-      const redirectUri = AuthSession.makeRedirectUri({
-        scheme: Platform.OS === 'web' ? undefined : 'yayska',
-        path: 'auth/google/callback',
-      });
+      // Generate redirect URI with special handling for web production
+      let redirectUri;
+      if (Platform.OS === 'web') {
+        // In web, we need to ensure the redirect URI matches what we've configured in Google console
+        // and in vercel.json
+        const host = window.location.origin;
+        redirectUri = `${host}/auth/google/callback`;
+        console.log('Using web redirect URI:', redirectUri);
+      } else {
+        // For native platforms, use the Expo-provided redirect URI
+        redirectUri = AuthSession.makeRedirectUri({
+          scheme: 'yayska',
+          path: 'auth/google/callback',
+        });
+        console.log('Using native redirect URI:', redirectUri);
+      }
 
       // Get the client ID from our environment utility based on platform
       const clientId = Platform.select({
@@ -211,12 +222,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
       });
 
+      console.log('Auth request result type:', result.type);
+
+      // Only log detailed properties if the result is successful
       if (result.type === 'success') {
+        const successResult = result as AuthSession.AuthSessionResult & {
+          params: { code: string; [key: string]: string };
+          url: string;
+        };
+
+        console.log('Auth request successful:', {
+          hasCode: !!successResult.params?.code,
+          url: successResult.url,
+        });
+      } else if ('error' in result) {
+        // Handle error case if the object has an error property
+        console.log('Auth request error:', (result as any).error);
+      }
+
+      if (result.type === 'success') {
+        // Cast to access the params property safely
+        const successResult = result as AuthSession.AuthSessionResult & {
+          params: { code: string; [key: string]: string };
+        };
+
         // Exchange code for tokens using your backend
-        const { code } = result.params;
+        const { code } = successResult.params;
 
         // Get the codeVerifier that was automatically generated
         const codeVerifier = authRequest.codeVerifier;
+
+        console.log('Sending token exchange request to API:', {
+          endpoint: `${API_BASE_URL}/auth/google/callback`,
+          hasCode: !!code,
+          hasCodeVerifier: !!codeVerifier,
+          redirectUri,
+        });
 
         const tokenResponse = await fetch(
           `${API_BASE_URL}/auth/google/callback`,
@@ -235,6 +276,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         );
 
         if (!tokenResponse.ok) {
+          console.error('Token exchange failed:', {
+            status: tokenResponse.status,
+            statusText: tokenResponse.statusText,
+          });
+
+          try {
+            const errorBody = await tokenResponse.text();
+            console.error('Error response:', errorBody);
+          } catch (e) {
+            console.error('Could not parse error response');
+          }
+
           throw new Error('Failed to exchange code for tokens');
         }
 
