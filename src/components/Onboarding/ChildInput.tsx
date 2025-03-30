@@ -6,14 +6,14 @@ type ChildInputProps = {
   childName: string;
   onNameChange: (text: string) => void;
   onRemove: () => void;
-  showRemove?: boolean; // Add this prop definition
+  showRemove?: boolean;
 };
 
 export function ChildInput({
   childName,
   onNameChange,
   onRemove,
-  showRemove = true, // Default value
+  showRemove = true,
 }: ChildInputProps) {
   return (
     <View style={styles.container}>
@@ -23,9 +23,14 @@ export function ChildInput({
         onChangeText={onNameChange}
         placeholder="Child's name (optional)"
         placeholderTextColor={colors.text.tertiary}
+        autoCapitalize="words"
       />
       {showRemove && (
-        <Pressable style={styles.removeButton} onPress={onRemove}>
+        <Pressable
+          style={styles.removeButton}
+          onPress={onRemove}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text style={styles.removeButtonText}>Remove</Text>
         </Pressable>
       )}
@@ -46,7 +51,8 @@ const styles = StyleSheet.create({
     borderRadius: commonStyles.borderRadius.medium,
     fontSize: 16,
     color: colors.text.primary,
-    ...commonStyles.shadow,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGrey,
   },
   removeButton: {
     marginLeft: 12,
@@ -55,5 +61,6 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: colors.accent.error,
     fontSize: 14,
+    fontWeight: '500',
   },
 });

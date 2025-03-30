@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,7 +15,11 @@ import { ChildInput } from '../src/components/Onboarding/ChildInput';
 import { YearSelector } from '../src/components/Onboarding/YearSelector';
 import { colors, commonStyles } from '../src/theme/colors';
 import { useLocalSearchParams } from 'expo-router';
-import { saveChildren, addChildren } from '../src/utils/storage';
+import {
+  saveChildren,
+  addChildren,
+  Child as StorageChild,
+} from '../src/utils/storage';
 import {
   EDUCATION_LEVELS,
   SCHOOL_YEARS,
@@ -22,7 +27,8 @@ import {
 } from '../src/constants/education';
 import { enrichChildWithYearName } from '../src/utils/educationUtils';
 
-type Child = {
+// Use a local type for the state that can have null values during input
+type ChildInput = {
   id: string;
   name: string;
   year: string | null;
@@ -32,7 +38,7 @@ type Child = {
 export default function OnboardingScreen() {
   const { mode } = useLocalSearchParams<{ mode?: 'add' }>();
   const router = useRouter();
-  const [children, setChildren] = useState<Child[]>([
+  const [children, setChildren] = useState<ChildInput[]>([
     {
       id: `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: '',
@@ -41,27 +47,7 @@ export default function OnboardingScreen() {
     },
   ]);
 
-  const [educationLevels, setEducationLevels] = useState<EducationLevel[]>([]);
-  const [schoolYears, setSchoolYears] = useState<SchoolYear[]>([]);
-  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setEducationLevels(EDUCATION_LEVELS);
-
-    if (EDUCATION_LEVELS.length === 1) {
-      setSelectedLevelId(EDUCATION_LEVELS[0].id);
-      setSchoolYears(getSchoolYearsByLevelId(EDUCATION_LEVELS[0].id));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedLevelId) {
-      setLoading(true);
-      setSchoolYears(getSchoolYearsByLevelId(selectedLevelId));
-      setLoading(false);
-    }
-  }, [selectedLevelId]);
 
   const addChild = () => {
     setChildren([
@@ -99,17 +85,25 @@ export default function OnboardingScreen() {
     if (children.some((child) => !child.yearId)) {
       Alert.alert(
         'Missing Information',
-        'Please select a year for each child before continuing.',
+        'Please select a school year for each child before continuing.',
         [{ text: 'OK' }]
       );
       return;
     }
 
     try {
+      // Convert to the storage format (year is optional, yearId is required)
+      const childrenToSave: StorageChild[] = children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        yearId: child.yearId || 0,
+        year: child.year || undefined,
+      }));
+
       if (mode === 'add') {
-        await addChildren(children);
+        await addChildren(childrenToSave);
       } else {
-        await saveChildren(children);
+        await saveChildren(childrenToSave);
       }
       router.replace('/home');
     } catch (error) {
@@ -121,41 +115,27 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleSaveChild = async () => {
-    // ... your existing saving logic
-
-    // When creating a child, use enrichChildWithYearName
-    const newChild = await saveChild(name, selectedYearId);
-    const enrichedChild = enrichChildWithYearName(newChild);
-
-    // ... rest of saving logic
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={styles.title}>
-            {mode === 'add' ? 'Add More Children' : 'Welcome to Yayska!'}
-          </Text>
+          {mode === 'add' ? (
+            <Text style={styles.title}>Add Children</Text>
+          ) : (
+            <View style={styles.welcomeContainer}>
+              <Image
+                source={require('../assets/images/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <Text style={styles.welcomeText}>Welcome!</Text>
+            </View>
+          )}
           <Text style={styles.subtitle}>
             {mode === 'add'
-              ? 'Add details for additional children.'
-              : "Let's personalize your experience by adding your children's details."}
+              ? 'Add each child and select their school year.'
+              : "Tell us who you'll be helping with their schoolwork."}
           </Text>
-
-          <View style={styles.instructionsCard}>
-            <Text style={styles.instructionsTitle}>Getting Started:</Text>
-            <Text style={styles.instructionText}>
-              1. Add each child's name (optional)
-            </Text>
-            <Text style={styles.instructionText}>
-              2. Select their current school year
-            </Text>
-            <Text style={styles.instructionText}>
-              3. Add more children if needed
-            </Text>
-          </View>
 
           {children.map((child) => (
             <View key={child.id} style={styles.childContainer}>
@@ -165,7 +145,7 @@ export default function OnboardingScreen() {
                 onRemove={() => removeChild(child.id)}
                 showRemove={children.length > 1}
               />
-              <Text style={styles.yearLabel}>Select year:</Text>
+              <Text style={styles.yearLabel}>Select school year:</Text>
               <YearSelector
                 selectedYear={child.year}
                 onYearSelect={(yearId, yearName) =>
@@ -187,9 +167,7 @@ export default function OnboardingScreen() {
             ]}
             onPress={handleContinue}
           >
-            <Text style={styles.continueButtonText}>
-              Continue to Learning Goals
-            </Text>
+            <Text style={styles.continueButtonText}>Continue</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -208,6 +186,20 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  welcomeContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  logo: {
+    width: 200,
+    height: 80,
+    marginBottom: 8,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -219,25 +211,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginBottom: 24,
     lineHeight: 22,
-  },
-  instructionsCard: {
-    backgroundColor: colors.background.primary,
-    padding: 16,
-    borderRadius: commonStyles.borderRadius.medium,
-    marginBottom: 24,
-    ...commonStyles.shadow,
-  },
-  instructionsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 12,
-  },
-  instructionText: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginBottom: 8,
-    lineHeight: 20,
   },
   childContainer: {
     marginBottom: 24,

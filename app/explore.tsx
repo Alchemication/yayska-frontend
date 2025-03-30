@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -17,6 +18,14 @@ import { getChildren, clearChildren, Child } from '../src/utils/storage';
 import { LearningGoalCard } from '../src/components/Learning/LearningGoalCard';
 import { api } from '../src/services/api';
 import { SubjectLearningPath, ConceptInPath } from '../src/types/curriculum';
+import { useAuth } from '../src/context/AuthContext';
+import { UserProfile } from '../src/components/Auth/UserProfile';
+import {
+  AppHeader,
+  TabNavigator,
+  TabRoute,
+  ChildrenDropdown,
+} from '../src/components/Navigation';
 
 // Let's first check what props the LearningGoalCard expects
 interface ConceptCardProps {
@@ -33,6 +42,10 @@ export default function ExploreScreen() {
   const [expandedSubjectId, setExpandedSubjectId] = useState<number | null>(
     null
   );
+  const [showUserProfile, setShowUserProfile] = useState(false);
+
+  // Add useAuth hook to get authentication state
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     loadChildren();
@@ -88,7 +101,7 @@ export default function ExploreScreen() {
       clearChildren()
         .then(() => {
           console.log('Storage cleared, navigating...');
-          router.replace('/');
+          router.replace('/onboarding');
         })
         .catch((error) => {
           console.error('Reset error:', error);
@@ -139,65 +152,23 @@ export default function ExploreScreen() {
     }
   };
 
-  // Header with back button to home
-  const Header = () => (
-    <View style={styles.header}>
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-        <Text style={styles.backButtonText}>Home</Text>
-      </Pressable>
-      <Text style={styles.headerTitle}>Explore All</Text>
-      <View style={styles.headerRightPlaceholder} />
-    </View>
-  );
+  const toggleUserProfile = () => {
+    setShowUserProfile(!showUserProfile);
+  };
 
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.primary }}
     >
-      <Header />
       <View style={styles.container}>
-        {/* Child selector */}
-        <Pressable
-          style={styles.childSelector}
-          onPress={toggleChildrenMenu}
-          disabled={children.length <= 1}
-        >
-          <View style={styles.childSelectorContent}>
-            <Text style={styles.selectedChildName}>
-              {selectedChild?.name || 'Child'}
-            </Text>
-            {children.length > 1 && (
-              <Ionicons
-                name={showChildrenMenu ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color={colors.text.primary}
-              />
-            )}
-          </View>
-        </Pressable>
-
-        {/* Children dropdown */}
-        {showChildrenMenu && (
-          <View style={styles.childrenMenu}>
-            {children.map((child) => (
-              <Pressable
-                key={child.id}
-                style={styles.childMenuItem}
-                onPress={() => selectChild(child)}
-              >
-                <Text
-                  style={[
-                    styles.childMenuItemText,
-                    selectedChild?.id === child.id && styles.selectedChildText,
-                  ]}
-                >
-                  {child.name}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
+        <AppHeader
+          children={children}
+          selectedChild={selectedChild}
+          showChildrenMenu={showChildrenMenu}
+          toggleChildrenMenu={toggleChildrenMenu}
+          selectChild={selectChild}
+          toggleUserProfile={toggleUserProfile}
+        />
 
         {/* Main content */}
         <ScrollView
@@ -255,6 +226,18 @@ export default function ExploreScreen() {
             </Pressable>
           </View>
         </ScrollView>
+
+        {/* User Profile Popover */}
+        {showUserProfile && (
+          <View style={styles.profileOverlay}>
+            <UserProfile
+              isVisible={showUserProfile}
+              onClose={() => setShowUserProfile(false)}
+            />
+          </View>
+        )}
+
+        <TabNavigator activeTab={TabRoute.Explore} />
       </View>
     </SafeAreaView>
   );
@@ -265,85 +248,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.background.secondary,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    marginLeft: 4,
-    fontSize: 16,
-    color: colors.text.primary,
-  },
-  headerRightPlaceholder: {
-    width: 70, // Balance the header
-  },
-  childSelector: {
-    backgroundColor: colors.background.secondary,
-    padding: 16,
-    marginBottom: 1,
-  },
-  childSelectorContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  selectedChildName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  childrenMenu: {
-    backgroundColor: colors.background.secondary,
-    marginBottom: 16,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-      web: {
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      },
-    }),
-  },
-  childMenuItem: {
-    padding: 14,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral.lightGrey,
-  },
-  childMenuItemText: {
-    fontSize: 16,
-    color: colors.text.primary,
-  },
-  selectedChildText: {
-    fontWeight: '600',
-    color: colors.primary.green,
-  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 80, // Extra padding at the bottom for the tab bar
   },
   loadingContainer: {
     flex: 1,
@@ -410,5 +320,25 @@ const styles = StyleSheet.create({
   resetButtonText: {
     color: colors.background.primary,
     fontWeight: '600',
+  },
+  profileOverlay: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    zIndex: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+      },
+    }),
   },
 });

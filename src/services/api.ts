@@ -16,11 +16,21 @@ import {
   SCHOOL_YEARS,
   getSchoolYearsByLevelId,
 } from '../utils/schoolYearUtils';
+import { fetchWithAuth, getAccessToken } from './authApi';
+import Constants from 'expo-constants';
 
-const API_BASE_URL =
+// Get environment variable helper
+const getEnvVariable = (key: string, defaultValue: string = ''): string => {
+  return (Constants.expoConfig?.extra as any)?.[key] || defaultValue;
+};
+
+// API base URL from environment variables with fallbacks
+const API_BASE_URL = getEnvVariable(
+  'API_URL',
   process.env.NODE_ENV === 'production'
     ? 'https://yayska-backend.vercel.app/api/v1'
-    : 'http://localhost:8000/api/v1';
+    : 'http://localhost:8000/api/v1'
+);
 
 class APIError extends Error {
   constructor(public status: number, message: string) {
@@ -33,26 +43,8 @@ async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new APIError(response.status, `API Error: ${response.statusText}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    if (error instanceof APIError) {
-      throw error;
-    }
-    throw new Error('Network error: Unable to connect to the server');
-  }
+  // Use fetchWithAuth for authenticated requests
+  return fetchWithAuth<T>(endpoint, options);
 }
 
 // Monthly curriculum response type
@@ -88,6 +80,7 @@ export const api = {
     yearIds: number[],
     referenceMonth?: number
   ): Promise<MonthlyCurriculumResponse> => {
+    const token = await getAccessToken();
     const yearIdsParam = yearIds.join(',');
     let url = `/concepts/monthly-curriculum?year_ids=${yearIdsParam}`;
 
@@ -95,6 +88,11 @@ export const api = {
       url += `&reference_month=${referenceMonth}`;
     }
 
-    return fetchAPI<MonthlyCurriculumResponse>(url);
+    try {
+      return await fetchAPI<MonthlyCurriculumResponse>(url);
+    } catch (error) {
+      console.error('Failed to fetch monthly curriculum:', error);
+      throw error;
+    }
   },
 };

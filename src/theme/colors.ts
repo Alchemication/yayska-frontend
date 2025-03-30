@@ -2,9 +2,9 @@
 export const colors = {
   // Primary colors (Irish flag inspired)
   primary: {
-    green: '#169B62', // A more muted green than flag green
-    greenLight: '#1FB774', // Lighter shade for hover states
-    greenDark: '#0B754A', // Darker shade for contrast
+    green: '#267255', // Updated to a deeper green that matches the logo better
+    greenLight: '#348C6A', // Lighter shade for hover states
+    greenDark: '#1A5B42', // Darker shade for contrast
 
     orange: '#FF8C37', // Softer orange than flag orange
     orangeLight: '#FFA864',
@@ -23,7 +23,7 @@ export const colors = {
 
   // Accent colors for various UI elements
   accent: {
-    success: '#169B62', // Using our green
+    success: '#267255', // Using our updated green
     error: '#FF4D4D',
     warning: '#FF8C37', // Using our orange
     info: '#2196F3',
@@ -38,7 +38,7 @@ export const colors = {
 
   // Text colors
   text: {
-    primary: '#1A1A1A',
+    primary: '#252322', // Updated to a softer off-black with slight warm undertone
     secondary: '#4A4A4A',
     tertiary: '#9DA3AE',
   },

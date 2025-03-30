@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -22,14 +23,24 @@ import {
 } from '../src/components/Learning/MonthlyConceptsCarousel';
 import { updateChildrenWithYearNames } from '../src/utils/educationUtils';
 import { getChildDisplayName } from '../src/utils/childDisplayUtils';
+import { useAuth } from '../src/context/AuthContext';
+import { UserProfile } from '../src/components/Auth/UserProfile';
+import {
+  AppHeader,
+  TabNavigator,
+  TabRoute,
+  ChildrenDropdown,
+} from '../src/components/Navigation';
 
 export default function HomeScreen() {
+  const { user, isAuthenticated } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [loading, setLoading] = useState(true);
   const [showChildrenMenu, setShowChildrenMenu] = useState(false);
   const [curriculumPlans, setCurriculumPlans] = useState<CurriculumPlan[]>([]);
   const [isSummerMode, setIsSummerMode] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
   useEffect(() => {
     updateChildrenWithYearNames();
@@ -91,7 +102,7 @@ export default function HomeScreen() {
       clearChildren()
         .then(() => {
           console.log('Storage cleared, navigating...');
-          router.replace('/');
+          router.replace('/onboarding');
         })
         .catch((error) => {
           console.error('Reset error:', error);
@@ -125,14 +136,6 @@ export default function HomeScreen() {
     router.push('/explore' as any);
   };
 
-  const showComingSoonAlert = (feature: string) => {
-    Alert.alert(
-      'Coming Soon',
-      `${feature} will be available in a future update!`,
-      [{ text: 'OK' }]
-    );
-  };
-
   const toggleChildrenMenu = () => {
     setShowChildrenMenu(!showChildrenMenu);
   };
@@ -142,105 +145,45 @@ export default function HomeScreen() {
     setShowChildrenMenu(false);
   };
 
+  const toggleUserProfile = () => {
+    setShowUserProfile(!showUserProfile);
+  };
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.primary }}
     >
       <View style={styles.container}>
-        {/* Compact Header with integrated child selector */}
-        <View style={styles.compactHeader}>
-          <Text style={styles.headerTitle}>Yayska</Text>
-          <Pressable
-            style={styles.childSelector}
-            onPress={toggleChildrenMenu}
-            disabled={children.length <= 1}
-          >
-            <View style={styles.childSelectorContent}>
-              <Text style={styles.selectedChildName}>
-                {getChildDisplayName(selectedChild)}
-              </Text>
-              {children.length > 1 && (
-                <Ionicons
-                  name={showChildrenMenu ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={colors.text.primary}
-                  style={styles.childSelectorIcon}
-                />
-              )}
-            </View>
-          </Pressable>
-        </View>
-
-        {/* Children dropdown */}
-        {showChildrenMenu && (
-          <View style={styles.childrenMenu}>
-            {children.map((child) => (
-              <Pressable
-                key={child.id}
-                style={styles.childMenuItem}
-                onPress={() => selectChild(child)}
-              >
-                <Text
-                  style={[
-                    styles.childMenuItemText,
-                    selectedChild?.id === child.id && styles.selectedChildText,
-                  ]}
-                >
-                  {child.name}
-                  {child.year && <Text> ({child.year})</Text>}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
+        <AppHeader
+          children={children}
+          selectedChild={selectedChild}
+          showChildrenMenu={showChildrenMenu}
+          toggleChildrenMenu={toggleChildrenMenu}
+          selectChild={selectChild}
+          toggleUserProfile={toggleUserProfile}
+        />
 
         {/* Main content */}
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
         >
-          {/* Quick Actions Row */}
-          <View style={styles.quickActionsRow}>
-            <Pressable
-              style={styles.quickActionButton}
-              onPress={navigateToExplore}
-            >
-              <Ionicons
-                name="grid-outline"
-                size={18}
-                color={colors.primary.green}
-              />
-              <Text style={styles.quickActionText}>Explore All</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.quickActionButton}
-              onPress={() => showComingSoonAlert('AI Chat')}
-            >
-              <Ionicons
-                name="chatbubble-outline"
-                size={18}
-                color={colors.primary.green}
-              />
-              <Text style={styles.quickActionText}>AI Chat</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.quickActionButton}
-              onPress={() => showComingSoonAlert('Progress tracking')}
-            >
-              <Ionicons
-                name="bar-chart-outline"
-                size={18}
-                color={colors.primary.green}
-              />
-              <Text style={styles.quickActionText}>Progress</Text>
-            </Pressable>
-          </View>
-
           {/* Monthly Curriculum Carousel - directly embedded without extra header */}
           <View style={styles.carouselContainer}>
-            <Text style={styles.sectionTitle}>This Month's Learning</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>This Month's Learning</Text>
+              <Pressable
+                style={styles.viewAllButton}
+                onPress={navigateToExplore}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={14}
+                  color={colors.primary.green}
+                />
+              </Pressable>
+            </View>
             <MonthlyConceptsCarousel
               curriculumPlans={curriculumPlans}
               selectedYearId={selectedChild?.yearId || undefined}
@@ -254,6 +197,18 @@ export default function HomeScreen() {
             <Text style={styles.resetButtonText}>Reset All Data</Text>
           </Pressable>
         </ScrollView>
+
+        {/* User Profile Popover */}
+        {showUserProfile && (
+          <View style={styles.profileOverlay}>
+            <UserProfile
+              isVisible={showUserProfile}
+              onClose={() => setShowUserProfile(false)}
+            />
+          </View>
+        )}
+
+        <TabNavigator activeTab={TabRoute.Home} />
       </View>
     </SafeAreaView>
   );
@@ -264,103 +219,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
-  compactHeader: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.primary.green,
-  },
-  childSelector: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    backgroundColor: colors.background.tertiary,
-  },
-  childSelectorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  selectedChildName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  childSelectorIcon: {
-    marginLeft: 4,
-  },
-  childrenMenu: {
-    backgroundColor: colors.background.secondary,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-      web: {
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      },
-    }),
-  },
-  childMenuItem: {
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#eaeaea',
-  },
-  childMenuItemText: {
-    fontSize: 16,
-    color: colors.text.primary,
-  },
-  selectedChildText: {
-    fontWeight: '600',
-    color: colors.primary.green,
-  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 80, // Extra padding at the bottom for the tab bar
   },
-  quickActionsRow: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  quickActionButton: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background.secondary,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  quickActionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.text.primary,
-    marginLeft: 4,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 12,
     color: colors.text.primary,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: colors.primary.green,
+    fontWeight: '500',
+    marginRight: 4,
   },
   carouselContainer: {
     marginBottom: 8,
@@ -379,5 +264,25 @@ const styles = StyleSheet.create({
     color: colors.accent.error,
     fontSize: 14,
     fontWeight: '500',
+  },
+  profileOverlay: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    zIndex: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+      },
+    }),
   },
 });

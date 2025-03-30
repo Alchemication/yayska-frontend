@@ -75,26 +75,31 @@ export function YearSelector({
   const displayYears = years && years.length > 0 ? years : fallbackYears;
 
   return (
-    <View style={styles.container}>
-      {displayYears.map((year) => (
-        <Pressable
-          key={year.id}
-          style={[
-            styles.yearButton,
-            selectedYear === year.year_name && styles.yearButtonSelected,
-          ]}
-          onPress={() => onYearSelect(year.id, year.year_name)}
-        >
-          <Text
+    <View>
+      {!selectedYear && (
+        <Text style={styles.hintText}>Tap a year to select</Text>
+      )}
+      <View style={styles.container}>
+        {displayYears.map((year) => (
+          <Pressable
+            key={year.id}
             style={[
-              styles.yearText,
-              selectedYear === year.year_name && styles.yearTextSelected,
+              styles.yearButton,
+              selectedYear === year.year_name && styles.yearButtonSelected,
             ]}
+            onPress={() => onYearSelect(year.id, year.year_name)}
           >
-            {year.year_name}
-          </Text>
-        </Pressable>
-      ))}
+            <Text
+              style={[
+                styles.yearText,
+                selectedYear === year.year_name && styles.yearTextSelected,
+              ]}
+            >
+              {year.year_name}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -103,8 +108,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
     marginTop: 8,
+  },
+  hintText: {
+    color: colors.text.tertiary,
+    fontSize: 14,
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   yearButton: {
     backgroundColor: colors.background.primary,
@@ -113,6 +124,7 @@ const styles = StyleSheet.create({
     borderRadius: commonStyles.borderRadius.medium,
     borderWidth: 1,
     borderColor: colors.neutral.lightGrey,
+    marginBottom: 10,
   },
   yearButtonSelected: {
     backgroundColor: colors.primary.green,
