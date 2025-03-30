@@ -1,26 +1,12 @@
 {
   "version": 2,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/_expo/static/js/web/(.*)\\.js$",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate",
-        "content-type": "application/javascript; charset=utf-8"
-      },
-      "dest": "/dist/_expo/static/js/web/$1.js"
+      "source": "/_expo/static/js/web/(.*).js",
+      "destination": "/dist/_expo/static/js/web/$1.js"
     },
-    {
-      "src": "/static/(.*)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "dest": "/dist/static/$1"
-    },
-    {
-      "src": "/auth/google/callback(.*)",
-      "dest": "/dist/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/index.html"
-    }
+    { "source": "/static/(.*)", "destination": "/dist/static/$1" },
+    { "source": "/auth/google/callback", "destination": "/dist/index.html" },
+    { "source": "/(.*)", "destination": "/dist/index.html" }
   ]
 }
