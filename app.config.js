@@ -30,10 +30,12 @@ module.exports = {
   web: {
     favicon: './assets/images/favicon.png',
     bundler: 'metro',
-    output: 'static',
+    output: 'single',
     rewrite: {
       '/auth/google/callback': '/',
       '/auth/google/callback/*': '/',
+      '/auth': '/',
+      '/auth/*': '/',
     },
   },
   extra: {
