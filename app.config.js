@@ -33,6 +33,7 @@ module.exports = {
     output: 'static',
     rewrite: {
       '/auth/google/callback': '/',
+      '/auth/google/callback/*': '/',
     },
   },
   extra: {

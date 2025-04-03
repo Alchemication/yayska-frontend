@@ -7,6 +7,10 @@
     },
     { "source": "/static/(.*)", "destination": "/dist/static/$1" },
     { "source": "/auth/google/callback", "destination": "/dist/index.html" },
+    {
+      "source": "/auth/google/callback/:path*",
+      "destination": "/dist/index.html"
+    },
     { "source": "/(.*)", "destination": "/dist/index.html" }
   ]
 }
