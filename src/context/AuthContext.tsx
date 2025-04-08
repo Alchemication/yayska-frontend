@@ -177,11 +177,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Login function
   const login = async () => {
     try {
-      // Check if we're in iOS Safari
-      const isIOS = Platform.OS === 'ios';
+      // Check browser environments
+      const isIOS =
+        Platform.OS === 'web' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isMacOS = Platform.OS === 'web' && /Mac/i.test(navigator.userAgent);
       const isSafari = /^((?!chrome|android).)*safari/i.test(
         navigator.userAgent
       );
+
+      // For Safari on macOS, we need to open the popup immediately during user interaction
+      let popup: Window | null = null;
+      if (isMacOS && isSafari) {
+        popup = window.open('about:blank', '_blank', 'width=600,height=700');
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          alert(
+            "Please allow popups for this website to enable Google Sign-In. You can do this by clicking the popup icon in your browser's address bar."
+          );
+          return;
+        }
+        // Show loading message while we prepare auth
+        popup.document.write(
+          '<html><body style="background-color: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding-top: 100px;"><h3>Preparing Google Sign-In...</h3><p>Please wait while we connect to Google.</p></body></html>'
+        );
+      }
 
       // Generate redirect URI with special handling for web production
       let redirectUri;
@@ -192,16 +210,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         redirectUri = `${host}/auth/google/callback`;
         console.log('Using web redirect URI:', redirectUri);
 
-        // Check for popup blocker on web platforms
-        if (typeof window !== 'undefined') {
-          const popup = window.open('', '_blank');
-          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        // Check for popup blocker on web platforms (if we haven't already opened a popup)
+        if (typeof window !== 'undefined' && !popup) {
+          const testPopup = window.open('', '_blank');
+          if (
+            !testPopup ||
+            testPopup.closed ||
+            typeof testPopup.closed === 'undefined'
+          ) {
             alert(
               "Please allow popups for this website to enable Google Sign-In. You can do this by clicking the popup icon in your browser's address bar."
             );
             return;
           }
-          popup.close();
+          testPopup.close();
         }
       } else {
         // For native platforms, use the Expo-provided redirect URI
@@ -220,6 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       if (!clientId) {
+        if (popup) popup.close();
         console.error('No client ID found for current platform');
         return;
       }
@@ -252,6 +275,140 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           prompt: 'consent',
         },
       });
+
+      // For Safari on macOS, navigate the already-opened popup
+      if (isMacOS && isSafari && popup) {
+        const authUrl = await authRequest.makeAuthUrlAsync({
+          authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+        });
+
+        // Navigate the popup to the auth URL
+        popup.location.href = authUrl;
+
+        // Set up a message listener for the response
+        const handleMessage = async (event: MessageEvent) => {
+          if (event.data && event.data.type === 'auth_response') {
+            window.removeEventListener('message', handleMessage);
+
+            // Process the authentication response
+            if (event.data.code) {
+              // Handle the code similar to the success case below
+              const code = event.data.code;
+              const codeVerifier = authRequest.codeVerifier;
+
+              console.log('Sending token exchange request to API:', {
+                endpoint: `${API_BASE_URL}/auth/google/callback`,
+                hasCode: !!code,
+                hasCodeVerifier: !!codeVerifier,
+                redirectUri,
+              });
+
+              try {
+                const tokenResponse = await fetch(
+                  `${API_BASE_URL}/auth/google/callback`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      code,
+                      code_verifier: codeVerifier,
+                      redirect_uri: redirectUri,
+                    }),
+                    credentials: 'include',
+                  }
+                );
+
+                if (!tokenResponse.ok) {
+                  console.error('Token exchange failed:', {
+                    status: tokenResponse.status,
+                    statusText: tokenResponse.statusText,
+                  });
+
+                  try {
+                    const errorBody = await tokenResponse.text();
+                    console.error('Error response:', errorBody);
+                    if (popup) popup.close();
+                  } catch (e) {
+                    console.error('Could not parse error response');
+                  }
+
+                  throw new Error('Failed to exchange code for tokens');
+                }
+
+                const tokenData = await tokenResponse.json();
+
+                // Log token data to debug
+                console.log('Auth response received:', {
+                  hasAccessToken: !!tokenData.access_token,
+                  hasRefreshToken: !!tokenData.refresh_token,
+                  user: tokenData.user
+                    ? {
+                        id: tokenData.user.id,
+                        name: tokenData.user.name,
+                        email: tokenData.user.email,
+                        hasPicture: !!tokenData.user.picture,
+                        pictureUrl: tokenData.user.picture,
+                      }
+                    : 'No user data',
+                });
+
+                // Ensure we have a valid user object with a picture field
+                let userData = tokenData.user;
+
+                // If we have user data but no picture field, check for alternative fields
+                if (userData && !userData.picture) {
+                  // Check for various possible picture field names
+                  if (userData.photoUrl) userData.picture = userData.photoUrl;
+                  else if (userData.photo_url)
+                    userData.picture = userData.photo_url;
+                  else if (userData.image) userData.picture = userData.image;
+                  else if (userData.avatar) userData.picture = userData.avatar;
+                  else if (userData.profilePhoto)
+                    userData.picture = userData.profilePhoto;
+                }
+
+                // Store tokens and user info
+                await AsyncStorage.setItem(
+                  AUTH_KEYS.ACCESS_TOKEN,
+                  tokenData.access_token
+                );
+                await AsyncStorage.setItem(
+                  AUTH_KEYS.REFRESH_TOKEN,
+                  tokenData.refresh_token
+                );
+                await AsyncStorage.setItem(
+                  AUTH_KEYS.USER_INFO,
+                  JSON.stringify(userData)
+                );
+
+                setUser(userData);
+
+                // Close popup window if it's still open
+                if (popup && !popup.closed) {
+                  popup.close();
+                }
+
+                // If this was the first login, redirect to onboarding
+                if (tokenData.is_new_user) {
+                  router.replace('/onboarding');
+                } else {
+                  router.replace('/home');
+                }
+              } catch (error) {
+                console.error('Token exchange error:', error);
+                if (popup && !popup.closed) {
+                  popup.close();
+                }
+              }
+            }
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return;
+      }
 
       const result = await authRequest.promptAsync({
         authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',

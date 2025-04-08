@@ -32,8 +32,9 @@ module.exports = {
     bundler: 'metro',
     output: 'single',
     rewrite: {
-      '/auth/google/callback': '/',
-      '/auth/google/callback/*': '/',
+      // Don't redirect auth callbacks to root, let them render their own page first
+      // '/auth/google/callback': '/',
+      // '/auth/google/callback/*': '/',
       '/auth': '/',
       '/auth/*': '/',
     },

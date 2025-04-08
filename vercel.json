@@ -1,3 +1,9 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/auth/google/callback",
+      "destination": "/auth/google/callback/index.html"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
