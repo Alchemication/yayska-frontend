@@ -177,6 +177,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Login function
   const login = async () => {
     try {
+      // Check if we're in iOS Safari
+      const isIOS = Platform.OS === 'ios';
+      const isSafari = /^((?!chrome|android).)*safari/i.test(
+        navigator.userAgent
+      );
+
       // Generate redirect URI with special handling for web production
       let redirectUri;
       if (Platform.OS === 'web') {
@@ -185,6 +191,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const host = window.location.origin;
         redirectUri = `${host}/auth/google/callback`;
         console.log('Using web redirect URI:', redirectUri);
+
+        // Check for popup blocker on web platforms
+        if (typeof window !== 'undefined') {
+          const popup = window.open('', '_blank');
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            alert(
+              "Please allow popups for this website to enable Google Sign-In. You can do this by clicking the popup icon in your browser's address bar."
+            );
+            return;
+          }
+          popup.close();
+        }
       } else {
         // For native platforms, use the Expo-provided redirect URI
         redirectUri = AuthSession.makeRedirectUri({
@@ -203,6 +221,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (!clientId) {
         console.error('No client ID found for current platform');
+        return;
+      }
+
+      // Special handling for iOS Safari
+      if (isIOS && isSafari) {
+        // Use a more direct approach for iOS Safari
+        const authUrl =
+          `https://accounts.google.com/o/oauth2/v2/auth?` +
+          `client_id=${encodeURIComponent(clientId)}&` +
+          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+          `response_type=code&` +
+          `scope=${encodeURIComponent('profile email')}&` +
+          `access_type=offline&` +
+          `prompt=consent`;
+
+        // Open in the same window for iOS Safari
+        window.location.href = authUrl;
         return;
       }
 

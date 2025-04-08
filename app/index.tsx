@@ -1,4 +1,5 @@
 // app/index.tsx
+import React from 'react';
 import { useEffect, useState } from 'react';
 import {
   StyleSheet,
@@ -7,6 +8,7 @@ import {
   Pressable,
   ActivityIndicator,
   Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -107,9 +109,7 @@ export default function WelcomeScreen() {
             />
           </View>
 
-          <Text style={styles.title}>
-            -- Parent's Guide to School Success --
-          </Text>
+          <Text style={styles.title}>Parent's Guide to School Success</Text>
           <Text style={styles.subtitle}>
             <Text style={styles.brandName}>Know more. Help better.</Text>
           </Text>
@@ -143,6 +143,19 @@ export default function WelcomeScreen() {
               />
               <Text style={styles.buttonText}>Continue with Google</Text>
             </Pressable>
+
+            {/* Browser-specific instructions */}
+            <Text style={styles.browserInstructions}>
+              {Platform.OS === 'web' && (
+                <>
+                  {/^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+                    ? 'Using Safari? Please allow popups for this site to enable Google Sign-In.'
+                    : /iPhone|iPad|iPod/i.test(navigator.userAgent)
+                    ? 'On iOS, you may need to accept the popup to continue with Google Sign-In.'
+                    : null}
+                </>
+              )}
+            </Text>
 
             {/* Future auth providers will go here */}
             <Text style={styles.comingSoon}>
@@ -282,5 +295,12 @@ const styles = StyleSheet.create({
   subtitleAccent: {
     color: colors.primary.orange,
     fontWeight: 'bold',
+  },
+  browserInstructions: {
+    marginTop: 10,
+    fontSize: 12,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });
