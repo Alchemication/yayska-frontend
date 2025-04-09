@@ -35,6 +35,8 @@ module.exports = {
       // Don't redirect auth callbacks to root, let them render their own page first
       // '/auth/google/callback': '/',
       // '/auth/google/callback/*': '/',
+      // Make sure our popup-callback page is accessible
+      '/auth/google/popup-callback': '/auth/google/popup-callback',
       '/auth': '/',
       '/auth/*': '/',
     },

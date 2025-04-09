@@ -1,170 +1,200 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  Image,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
 import * as WebBrowser from 'expo-web-browser';
 import { colors } from '../../../src/theme/colors';
+import { Ionicons } from '@expo/vector-icons';
 
 /**
  * This component handles the Google OAuth callback.
  * When users are redirected back from Google with an authorization code,
- * this page displays while the auth session is being completed.
+ * this page completes the auth session.
  */
 export default function GoogleAuthCallback() {
   const params = useLocalSearchParams();
   const { isAuthenticated } = useAuth();
-  const [stage, setStage] = useState('Initializing...');
-  const [dots, setDots] = useState('');
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const auth = useAuth();
+  const [status, setStatus] = useState('Initializing...');
+  const [progress, setProgress] = useState(10);
 
-  // Create animated dots to show activity
   useEffect(() => {
-    const interval = setInterval(() => {
-      setDots((prev) => (prev.length < 3 ? prev + '.' : ''));
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
+    // Create a progress animation
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        const newProgress = prev + 5;
+        // Cap at 90% until we're actually done
+        return Math.min(newProgress, 90);
+      });
+    }, 200);
 
-  // Show elapsed time to give user a sense of progress
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
+    return () => clearInterval(progressInterval);
   }, []);
 
   useEffect(() => {
-    // Update progress stage based on elapsed time
-    if (elapsedTime > 1) setStage('Verifying authentication...');
-    if (elapsedTime > 4) setStage('Processing credentials...');
-    if (elapsedTime > 7) setStage('Finalizing login...');
-    if (elapsedTime > 12) setStage('Almost there...');
-  }, [elapsedTime]);
-
-  useEffect(() => {
-    // Log the full URL and parameters for debugging
-    console.log('Google auth callback received:', {
-      hasCode: !!params.code,
-      hasState: !!params.state,
-      url: window?.location?.href,
-      fullParams: params,
+    // Log the parameters received in the URL
+    console.log('[GoogleAuthCallback] Received params:', params);
+    console.log('[GoogleAuthCallback] Authentication state:', {
       isAuthenticated,
+      hasUser: !!auth.user,
+      user: auth.user
+        ? {
+            id: auth.user.id,
+            email: auth.user.email,
+          }
+        : null,
     });
 
-    setStage('Receiving authentication response...');
+    const handleCallback = async () => {
+      // For web redirect flow, process the code
+      if (Platform.OS === 'web' && params.code) {
+        try {
+          setStatus('Verifying authentication...');
 
-    // Check if this is a Safari on macOS popup flow
-    if (typeof window !== 'undefined' && window.opener && params.code) {
-      try {
-        setStage('Processing Safari auth flow...');
-        // Send the auth code back to the opener window for Safari on macOS
-        window.opener.postMessage(
-          {
-            type: 'auth_response',
-            code: params.code,
-            state: params.state,
-          },
-          window.location.origin
-        );
+          // Retrieve the stored code verifier and redirect URI
+          const codeVerifier =
+            sessionStorage.getItem('auth_code_verifier') || '';
+          const redirectUri = sessionStorage.getItem('auth_redirect_uri') || '';
 
-        // Show success message and close popup after a delay
-        document.body.innerHTML =
-          '<html><body style="background-color: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding-top: 100px;"><h3>Authentication Successful!</h3><p>You can close this window and return to the app.</p></body></html>';
+          if (!codeVerifier || !redirectUri) {
+            console.error(
+              '[GoogleAuthCallback] Missing code verifier or redirect URI'
+            );
+            setStatus('Authentication failed. Redirecting to login...');
+            setTimeout(() => router.replace('/'), 2000);
+            return;
+          }
 
-        setTimeout(() => {
-          window.close();
-        }, 2000);
+          // Call the processAuthResult method from AuthContext
+          if (auth.processAuthResult) {
+            setStatus('Processing credentials...');
 
+            const success = await auth.processAuthResult(
+              params.code as string,
+              codeVerifier,
+              redirectUri
+            );
+
+            // Complete the progress bar
+            setProgress(100);
+
+            if (success) {
+              setStatus('Authentication successful! Redirecting...');
+            } else {
+              setStatus('Authentication failed. Please try again.');
+              setTimeout(() => router.replace('/'), 2000);
+            }
+
+            // Clean up storage
+            sessionStorage.removeItem('auth_code_verifier');
+            sessionStorage.removeItem('auth_redirect_uri');
+          } else {
+            console.error(
+              '[GoogleAuthCallback] processAuthResult not available'
+            );
+            setStatus('Authentication error. Redirecting to login...');
+            setTimeout(() => router.replace('/'), 2000);
+          }
+        } catch (error) {
+          console.error('[GoogleAuthCallback] Error processing code:', error);
+          setStatus('Authentication error. Please try again.');
+          setTimeout(() => router.replace('/'), 2000);
+        }
         return;
-      } catch (e) {
-        console.error('Error posting message to opener:', e);
-        setStage('Handling error in auth flow...');
       }
-    }
 
-    // Try to complete the auth session with improved error handling
-    try {
-      setStage('Completing authentication session...');
-      const result = WebBrowser.maybeCompleteAuthSession();
-      console.log('maybeCompleteAuthSession result:', result);
-
-      // Check for specific session completion scenarios
-      if (result.type === 'failed') {
-        console.warn('Auth session completion failed:', result);
-        setStage('Session completion issue - trying alternative approach...');
-      }
-    } catch (error) {
-      console.error('Error completing auth session:', error);
-      setStage('Handling authentication error...');
-
-      // Try to recover if possible
-      if (params.code && params.state) {
+      // For non-web platforms, try to complete the auth session
+      try {
+        setStatus('Completing authentication session...');
+        const result = WebBrowser.maybeCompleteAuthSession();
         console.log(
-          'Despite error, code and state are present. Attempting to continue.'
+          '[GoogleAuthCallback] maybeCompleteAuthSession result:',
+          result
         );
-        setStage('Attempting recovery with auth code...');
-      }
-    }
-
-    // Wait a moment and then redirect the user with improved logic
-    const redirectTimer = setTimeout(() => {
-      setStage('Finalizing user profile...');
-      if (isAuthenticated) {
-        console.log('User is authenticated, redirecting to home');
-        setStage('Redirecting to home screen...');
-        router.replace('/home');
-      } else if (params.code && params.state) {
-        console.log(
-          'User has auth params but not authenticated yet, waiting a bit longer'
+      } catch (error) {
+        console.error(
+          '[GoogleAuthCallback] Error completing auth session:',
+          error
         );
-        setStage('User profile not ready, waiting...');
-        // If we have code and state but aren't authenticated, wait a bit longer
-        setTimeout(() => {
-          setStage('Completing redirect...');
-          router.replace(isAuthenticated ? '/home' : '/');
-        }, 2000);
-      } else {
-        console.log('No authentication detected, redirecting to login');
-        setStage('Authentication not detected, returning to login...');
-        router.replace('/');
+        setStatus('Authentication error. Please try again.');
       }
-    }, 2000);
 
-    return () => clearTimeout(redirectTimer);
-  }, [params, isAuthenticated]);
+      // Wait a moment and then redirect the user based on auth state
+      const redirectTimer = setTimeout(() => {
+        if (isAuthenticated) {
+          setStatus('Authentication successful! Redirecting...');
+          setProgress(100);
+          router.replace('/home');
+        } else {
+          // If not authenticated yet, wait a bit more since auth might still be in progress
+          setStatus('Waiting for authentication to complete...');
+          const extendedTimer = setTimeout(() => {
+            if (isAuthenticated) {
+              setStatus('Authentication successful! Redirecting...');
+              setProgress(100);
+              router.replace('/home');
+            } else {
+              setStatus('Authentication timeout. Redirecting to login...');
+              router.replace('/');
+            }
+          }, 3000);
+
+          return () => clearTimeout(extendedTimer);
+        }
+      }, 2000);
+
+      return () => clearTimeout(redirectTimer);
+    };
+
+    handleCallback();
+  }, [params, isAuthenticated, auth]);
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary.green} />
+      <View style={styles.card}>
+        {/* App Logo */}
+        <View style={styles.logoContainer}>
+          <Ionicons
+            name="checkmark-circle"
+            size={56}
+            color={colors.primary.green}
+          />
+        </View>
 
-      <Text style={styles.statusText}>
-        {stage}
-        {dots}
-      </Text>
+        <Text style={styles.title}>Google Sign-In</Text>
 
-      <Text style={styles.timeText}>Time elapsed: {elapsedTime}s</Text>
+        {/* Status message */}
+        <Text style={styles.status}>{status}</Text>
 
-      <View style={styles.progressContainer}>
-        <View
-          style={[
-            styles.progressBar,
-            { width: `${Math.min(elapsedTime * 5, 90)}%` },
-          ]}
+        {/* Progress bar */}
+        <View style={styles.progressContainer}>
+          <View
+            style={[
+              styles.progressBar,
+              { width: `${progress}%` },
+              progress === 100 ? styles.progressComplete : null,
+            ]}
+          />
+        </View>
+
+        {/* Loading spinner */}
+        <ActivityIndicator
+          size="large"
+          color={colors.primary.green}
+          style={styles.spinner}
         />
-      </View>
 
-      <Text style={styles.message}>Completing Google authentication</Text>
-
-      <Text style={styles.subMessage}>
-        Please wait while we securely sign you in
-      </Text>
-
-      {params.error && (
-        <Text style={styles.errorText}>
-          {params.error}:{' '}
-          {params.error_description || 'Authentication error occurred'}
+        <Text style={styles.info}>
+          Please wait while we complete your authentication.
         </Text>
-      )}
+      </View>
     </View>
   );
 }
@@ -177,42 +207,63 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     padding: 20,
   },
-  statusText: {
-    marginTop: 20,
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 30,
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  logoContainer: {
+    marginBottom: 20,
+    backgroundColor: colors.background.primary,
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 20,
+  },
+  status: {
+    fontSize: 16,
     color: colors.text.primary,
     fontWeight: '500',
-  },
-  timeText: {
-    marginTop: 8,
-    color: colors.text.secondary,
-    fontSize: 12,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   progressContainer: {
-    marginTop: 20,
-    width: '80%',
-    height: 6,
+    height: 8,
     backgroundColor: '#E0E0E0',
-    borderRadius: 3,
+    borderRadius: 4,
+    width: '100%',
     overflow: 'hidden',
+    marginBottom: 24,
   },
   progressBar: {
     height: '100%',
     backgroundColor: colors.primary.green,
+    borderRadius: 4,
   },
-  message: {
-    marginTop: 20,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text.primary,
+  progressComplete: {
+    backgroundColor: '#4CAF50',
   },
-  subMessage: {
-    marginTop: 8,
-    color: colors.text.secondary,
+  spinner: {
+    marginBottom: 16,
+  },
+  info: {
     fontSize: 14,
-  },
-  errorText: {
-    marginTop: 20,
-    color: 'red',
+    color: colors.text.secondary,
     textAlign: 'center',
   },
 });

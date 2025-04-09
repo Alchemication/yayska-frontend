@@ -44,9 +44,10 @@ export default function WelcomeScreen() {
 
           if (savedChildren && savedChildren.length > 0) {
             console.log('Found existing children, redirecting to home');
-            router.push('/home');
+            router.replace('/home');
           } else {
-            console.log('No children found for authenticated user');
+            console.log('No children found, redirecting to onboarding');
+            router.replace('/onboarding');
           }
         } else {
           console.log('User is not authenticated, staying on welcome screen');
@@ -61,7 +62,7 @@ export default function WelcomeScreen() {
     if (!isLoading) {
       checkExistingChildren();
     }
-  }, [isLoading, isAuthenticated]);
+  }, [isLoading, isAuthenticated, router]);
 
   if (isLoading || checkingRedirect) {
     return (
@@ -143,19 +144,6 @@ export default function WelcomeScreen() {
               />
               <Text style={styles.buttonText}>Continue with Google</Text>
             </Pressable>
-
-            {/* Browser-specific instructions */}
-            <Text style={styles.browserInstructions}>
-              {Platform.OS === 'web' && (
-                <>
-                  {/^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-                    ? 'Using Safari? Please allow popups for this site to enable Google Sign-In.'
-                    : /iPhone|iPad|iPod/i.test(navigator.userAgent)
-                    ? 'On iOS, you may need to accept the popup to continue with Google Sign-In.'
-                    : null}
-                </>
-              )}
-            </Text>
 
             {/* Future auth providers will go here */}
             <Text style={styles.comingSoon}>

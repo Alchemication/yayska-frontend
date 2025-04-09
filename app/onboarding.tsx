@@ -19,6 +19,7 @@ import {
   saveChildren,
   addChildren,
   Child as StorageChild,
+  getChildren,
 } from '../src/utils/storage';
 import {
   EDUCATION_LEVELS,
@@ -26,6 +27,7 @@ import {
   getSchoolYearsByLevelId,
 } from '../src/constants/education';
 import { enrichChildWithYearName } from '../src/utils/educationUtils';
+import { useAuth } from '../src/context/AuthContext';
 
 // Use a local type for the state that can have null values during input
 type ChildInput = {
@@ -38,6 +40,8 @@ type ChildInput = {
 export default function OnboardingScreen() {
   const { mode } = useLocalSearchParams<{ mode?: 'add' }>();
   const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
+
   const [children, setChildren] = useState<ChildInput[]>([
     {
       id: `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -48,6 +52,35 @@ export default function OnboardingScreen() {
   ]);
 
   const [loading, setLoading] = useState(false);
+
+  // Check if we should redirect based on existing children
+  useEffect(() => {
+    const checkForExistingChildren = async () => {
+      try {
+        console.log('[Onboarding] Checking for existing children');
+        // Only do this check for returning users, not new users
+        if (isAuthenticated && !mode) {
+          const existingChildren = await getChildren();
+
+          // If we already have children and we're not explicitly in "add" mode, go to home
+          if (existingChildren && existingChildren.length > 0) {
+            console.log(
+              '[Onboarding] Found existing children, redirecting to home'
+            );
+            router.replace('/home');
+          } else {
+            console.log(
+              '[Onboarding] No existing children found, staying on onboarding'
+            );
+          }
+        }
+      } catch (error) {
+        console.error('[Onboarding] Error checking for children:', error);
+      }
+    };
+
+    checkForExistingChildren();
+  }, [isAuthenticated, mode, router]);
 
   const addChild = () => {
     setChildren([

@@ -26,16 +26,21 @@ export interface User {
   picture?: string;
 }
 
-// Context type
+// The AuthContext interface
 interface AuthContextType {
-  user: User | null;
+  user: any | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  processAuthResult?: (
+    code: string,
+    codeVerifier: string,
+    redirectUri: string
+  ) => Promise<boolean>;
 }
 
-// Create context with default values
+// Create context with a default value
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
@@ -47,44 +52,58 @@ const AuthContext = createContext<AuthContextType>({
 // API base URL from environment variables
 const API_BASE_URL = ENV.API_URL;
 
+// Google auth configuration
+const discovery = {
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+};
+
 // Auth provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is authenticated on app load
+  // Load the user data on mount
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // Check for existing tokens
-        const accessToken = await AsyncStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+        // Check if we have a token in storage
+        const token = await AsyncStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
         const userInfo = await AsyncStorage.getItem(AUTH_KEYS.USER_INFO);
 
-        if (accessToken && userInfo) {
-          // Validate token (simple expiry check)
-          try {
-            const decoded: any = jwtDecode(accessToken);
-            const currentTime = Date.now() / 1000;
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
 
-            if (decoded.exp > currentTime) {
-              // Token still valid
-              setUser(JSON.parse(userInfo));
-            } else {
-              // Token expired, try to refresh
-              const success = await refreshToken();
-              if (!success) {
-                await clearAuthData();
-              }
-            }
-          } catch (error) {
-            // Invalid token
-            await clearAuthData();
+        // Validate token and load user data
+        try {
+          // Validate token with simple expiry check
+          const decodedToken = jwtDecode(token);
+
+          // Load user from stored user info
+          if (userInfo) {
+            const userData = JSON.parse(userInfo);
+            setUser(userData);
+            setIsAuthenticated(true);
+            console.log(
+              '[AuthContext] Loaded user from storage:',
+              userData.email
+            );
+          } else {
+            console.warn('[AuthContext] Token found but no user info');
+            await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
           }
+        } catch (e) {
+          console.error('[AuthContext] Invalid token or user data:', e);
+          await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
         }
       } catch (error) {
-        console.error('Error loading auth state:', error);
+        console.error('[AuthContext] Error loading user:', error);
       } finally {
         setIsLoading(false);
       }
@@ -93,148 +112,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loadUser();
   }, []);
 
-  // Function to clear auth data
-  const clearAuthData = async () => {
-    console.log('Clearing all auth data from storage');
-
-    try {
-      // Remove all auth-related items from AsyncStorage
-      await AsyncStorage.multiRemove([
-        AUTH_KEYS.ACCESS_TOKEN,
-        AUTH_KEYS.REFRESH_TOKEN,
-        AUTH_KEYS.USER_INFO,
-      ]);
-
-      // Clear user state
-      setUser(null);
-
-      console.log('Auth data cleared successfully');
-      return true;
-    } catch (error) {
-      console.error('Error clearing auth data:', error);
-
-      // Try individual removals if multiRemove fails
-      try {
-        console.log('Trying individual key removal as fallback');
-        await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
-        await AsyncStorage.removeItem(AUTH_KEYS.REFRESH_TOKEN);
-        await AsyncStorage.removeItem(AUTH_KEYS.USER_INFO);
-        setUser(null);
-        console.log('Individual auth data items cleared');
-        return true;
-      } catch (fallbackError) {
-        console.error('Failed even with fallback clearing:', fallbackError);
-        return false;
-      }
-    }
-  };
-
-  // Function to refresh token
-  const refreshToken = async (): Promise<boolean> => {
-    try {
-      const refreshToken = await AsyncStorage.getItem(AUTH_KEYS.REFRESH_TOKEN);
-      if (!refreshToken) return false;
-
-      const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-        credentials: 'include',
-      });
-
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      await AsyncStorage.setItem(AUTH_KEYS.ACCESS_TOKEN, data.access_token);
-      if (data.refresh_token) {
-        await AsyncStorage.setItem(AUTH_KEYS.REFRESH_TOKEN, data.refresh_token);
-      }
-
-      // If user info was updated, update that too
-      if (data.user) {
-        await AsyncStorage.setItem(
-          AUTH_KEYS.USER_INFO,
-          JSON.stringify(data.user)
-        );
-        setUser(data.user);
-      } else {
-        // Reload existing user info
-        const userInfo = await AsyncStorage.getItem(AUTH_KEYS.USER_INFO);
-        if (userInfo) {
-          setUser(JSON.parse(userInfo));
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      return false;
-    }
-  };
-
   // Login function
   const login = async () => {
     try {
-      // Check browser environments
-      const isIOS =
-        Platform.OS === 'web' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isMacOS = Platform.OS === 'web' && /Mac/i.test(navigator.userAgent);
-      const isSafari = /^((?!chrome|android).)*safari/i.test(
-        navigator.userAgent
-      );
+      console.log('[AuthContext] Starting login process');
+      setIsLoading(true);
 
-      // For Safari on macOS, we need to open the popup immediately during user interaction
-      let popup: Window | null = null;
-      if (isMacOS && isSafari) {
-        popup = window.open('about:blank', '_blank', 'width=600,height=700');
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-          alert(
-            "Please allow popups for this website to enable Google Sign-In. You can do this by clicking the popup icon in your browser's address bar."
-          );
-          return;
-        }
-        // Show loading message while we prepare auth
-        popup.document.write(
-          '<html><body style="background-color: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding-top: 100px;"><h3>Preparing Google Sign-In...</h3><p>Please wait while we connect to Google.</p></body></html>'
-        );
-      }
-
-      // Generate redirect URI with special handling for web production
-      let redirectUri;
-      if (Platform.OS === 'web') {
-        // In web, we need to ensure the redirect URI matches what we've configured in Google console
-        // and in vercel.json
-        const host = window.location.origin;
-        redirectUri = `${host}/auth/google/callback`;
-        console.log('Using web redirect URI:', redirectUri);
-
-        // Check for popup blocker on web platforms (if we haven't already opened a popup)
-        if (typeof window !== 'undefined' && !popup) {
-          const testPopup = window.open('', '_blank');
-          if (
-            !testPopup ||
-            testPopup.closed ||
-            typeof testPopup.closed === 'undefined'
-          ) {
-            alert(
-              "Please allow popups for this website to enable Google Sign-In. You can do this by clicking the popup icon in your browser's address bar."
-            );
-            return;
-          }
-          testPopup.close();
-        }
-      } else {
-        // For native platforms, use the Expo-provided redirect URI
-        redirectUri = AuthSession.makeRedirectUri({
-          scheme: 'yayska',
-          path: 'auth/google/callback',
-        });
-        console.log('Using native redirect URI:', redirectUri);
-      }
-
-      // Get the client ID from our environment utility based on platform
+      // Get the client ID for the current platform
       const clientId = Platform.select({
         web: ENV.GOOGLE_WEB_CLIENT_ID,
         ios: ENV.GOOGLE_IOS_CLIENT_ID,
@@ -242,28 +126,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       if (!clientId) {
-        if (popup) popup.close();
         console.error('No client ID found for current platform');
+        setIsLoading(false);
         return;
       }
 
-      // Special handling for iOS Safari
-      if (isIOS && isSafari) {
-        // Use a more direct approach for iOS Safari
-        const authUrl =
-          `https://accounts.google.com/o/oauth2/v2/auth?` +
-          `client_id=${encodeURIComponent(clientId)}&` +
-          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-          `response_type=code&` +
-          `scope=${encodeURIComponent('profile email')}&` +
-          `access_type=offline&` +
-          `prompt=consent`;
-
-        // Open in the same window for iOS Safari
-        window.location.href = authUrl;
-        return;
+      // Generate an appropriate redirect URI
+      let redirectUri;
+      if (Platform.OS === 'web') {
+        redirectUri = `${window.location.origin}/auth/google/callback`;
+      } else {
+        // For native platforms, use the Expo-provided redirect URI
+        redirectUri = AuthSession.makeRedirectUri({
+          scheme: 'yayska',
+          path: 'auth/google/callback',
+        });
       }
 
+      console.log('[AuthContext] Using redirect URI:', redirectUri);
+
+      // Create the auth request
       const authRequest = new AuthSession.AuthRequest({
         responseType: AuthSession.ResponseType.Code,
         clientId,
@@ -276,353 +158,151 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       });
 
-      // For Safari on macOS, navigate the already-opened popup
-      if (isMacOS && isSafari && popup) {
-        const authUrl = await authRequest.makeAuthUrlAsync({
-          authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-        });
+      // For web, use a redirect-based flow to avoid popup blockers
+      if (Platform.OS === 'web') {
+        // Generate the auth URL for direct navigation
+        const authUrl = await authRequest.makeAuthUrlAsync(discovery);
+        console.log('[AuthContext] Redirecting to auth URL');
 
-        // Navigate the popup to the auth URL
-        popup.location.href = authUrl;
+        // Store the code verifier in sessionStorage so we can retrieve it after redirect
+        sessionStorage.setItem(
+          'auth_code_verifier',
+          authRequest.codeVerifier || ''
+        );
+        sessionStorage.setItem('auth_redirect_uri', redirectUri);
 
-        // Set up a message listener for the response
-        const handleMessage = async (event: MessageEvent) => {
-          if (event.data && event.data.type === 'auth_response') {
-            window.removeEventListener('message', handleMessage);
-
-            // Process the authentication response
-            if (event.data.code) {
-              // Handle the code similar to the success case below
-              const code = event.data.code;
-              const codeVerifier = authRequest.codeVerifier;
-
-              console.log('Sending token exchange request to API:', {
-                endpoint: `${API_BASE_URL}/auth/google/callback`,
-                hasCode: !!code,
-                hasCodeVerifier: !!codeVerifier,
-                redirectUri,
-              });
-
-              try {
-                const tokenResponse = await fetch(
-                  `${API_BASE_URL}/auth/google/callback`,
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      code,
-                      code_verifier: codeVerifier,
-                      redirect_uri: redirectUri,
-                    }),
-                    credentials: 'include',
-                  }
-                );
-
-                if (!tokenResponse.ok) {
-                  console.error('Token exchange failed:', {
-                    status: tokenResponse.status,
-                    statusText: tokenResponse.statusText,
-                  });
-
-                  try {
-                    const errorBody = await tokenResponse.text();
-                    console.error('Error response:', errorBody);
-                    if (popup) popup.close();
-                  } catch (e) {
-                    console.error('Could not parse error response');
-                  }
-
-                  throw new Error('Failed to exchange code for tokens');
-                }
-
-                const tokenData = await tokenResponse.json();
-
-                // Log token data to debug
-                console.log('Auth response received:', {
-                  hasAccessToken: !!tokenData.access_token,
-                  hasRefreshToken: !!tokenData.refresh_token,
-                  user: tokenData.user
-                    ? {
-                        id: tokenData.user.id,
-                        name: tokenData.user.name,
-                        email: tokenData.user.email,
-                        hasPicture: !!tokenData.user.picture,
-                        pictureUrl: tokenData.user.picture,
-                      }
-                    : 'No user data',
-                });
-
-                // Ensure we have a valid user object with a picture field
-                let userData = tokenData.user;
-
-                // If we have user data but no picture field, check for alternative fields
-                if (userData && !userData.picture) {
-                  // Check for various possible picture field names
-                  if (userData.photoUrl) userData.picture = userData.photoUrl;
-                  else if (userData.photo_url)
-                    userData.picture = userData.photo_url;
-                  else if (userData.image) userData.picture = userData.image;
-                  else if (userData.avatar) userData.picture = userData.avatar;
-                  else if (userData.profilePhoto)
-                    userData.picture = userData.profilePhoto;
-                }
-
-                // Store tokens and user info
-                await AsyncStorage.setItem(
-                  AUTH_KEYS.ACCESS_TOKEN,
-                  tokenData.access_token
-                );
-                await AsyncStorage.setItem(
-                  AUTH_KEYS.REFRESH_TOKEN,
-                  tokenData.refresh_token
-                );
-                await AsyncStorage.setItem(
-                  AUTH_KEYS.USER_INFO,
-                  JSON.stringify(userData)
-                );
-
-                setUser(userData);
-
-                // Close popup window if it's still open
-                if (popup && !popup.closed) {
-                  popup.close();
-                }
-
-                // If this was the first login, redirect to onboarding
-                if (tokenData.is_new_user) {
-                  router.replace('/onboarding');
-                } else {
-                  router.replace('/home');
-                }
-              } catch (error) {
-                console.error('Token exchange error:', error);
-                if (popup && !popup.closed) {
-                  popup.close();
-                }
-              }
-            }
-          }
-        };
-
-        window.addEventListener('message', handleMessage);
-        return;
+        // Redirect the whole page to the auth URL
+        window.location.href = authUrl;
+        return; // Exit early as we're doing a full page redirect
       }
 
-      const result = await authRequest.promptAsync({
-        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-      });
+      // For native platforms, use the standard flow
+      const result = await authRequest.promptAsync(discovery);
+      console.log('[AuthContext] Auth request result type:', result.type);
 
-      console.log('Auth request result type:', result.type);
-
-      // Only log detailed properties if the result is successful
+      // Handle the result
       if (result.type === 'success') {
-        const successResult = result as AuthSession.AuthSessionResult & {
-          params: { code: string; [key: string]: string };
-          url: string;
-        };
-
-        console.log('Auth request successful:', {
-          hasCode: !!successResult.params?.code,
-          url: successResult.url,
-        });
-      } else if ('error' in result) {
-        // Handle error case if the object has an error property
-        console.log('Auth request error:', (result as any).error);
-      }
-
-      if (result.type === 'success') {
-        // Cast to access the params property safely
-        const successResult = result as AuthSession.AuthSessionResult & {
-          params: { code: string; [key: string]: string };
-        };
-
-        // Exchange code for tokens using your backend
-        const { code } = successResult.params;
-
-        // Get the codeVerifier that was automatically generated
-        const codeVerifier = authRequest.codeVerifier;
-
-        console.log('Sending token exchange request to API:', {
-          endpoint: `${API_BASE_URL}/auth/google/callback`,
-          hasCode: !!code,
-          hasCodeVerifier: !!codeVerifier,
-          redirectUri,
-        });
-
-        const tokenResponse = await fetch(
-          `${API_BASE_URL}/auth/google/callback`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              code,
-              code_verifier: codeVerifier,
-              redirect_uri: redirectUri,
-            }),
-            credentials: 'include',
-          }
+        // Process the auth result and exchange code for tokens
+        await processAuthResult(
+          result.params.code,
+          authRequest.codeVerifier || '',
+          redirectUri
         );
-
-        if (!tokenResponse.ok) {
-          console.error('Token exchange failed:', {
-            status: tokenResponse.status,
-            statusText: tokenResponse.statusText,
-          });
-
-          try {
-            const errorBody = await tokenResponse.text();
-            console.error('Error response:', errorBody);
-          } catch (e) {
-            console.error('Could not parse error response');
-          }
-
-          throw new Error('Failed to exchange code for tokens');
-        }
-
-        const tokenData = await tokenResponse.json();
-
-        // Log token data to debug
-        console.log('Auth response received:', {
-          hasAccessToken: !!tokenData.access_token,
-          hasRefreshToken: !!tokenData.refresh_token,
-          user: tokenData.user
-            ? {
-                id: tokenData.user.id,
-                name: tokenData.user.name,
-                email: tokenData.user.email,
-                hasPicture: !!tokenData.user.picture,
-                pictureUrl: tokenData.user.picture,
-              }
-            : 'No user data',
-        });
-
-        // Ensure we have a valid user object with a picture field
-        let userData = tokenData.user;
-
-        // If we have user data but no picture field, check for alternative fields
-        if (userData && !userData.picture) {
-          // Check for various possible picture field names
-          if (userData.photoUrl) userData.picture = userData.photoUrl;
-          else if (userData.photo_url) userData.picture = userData.photo_url;
-          else if (userData.image) userData.picture = userData.image;
-          else if (userData.avatar) userData.picture = userData.avatar;
-          else if (userData.profilePhoto)
-            userData.picture = userData.profilePhoto;
-
-          console.log(
-            'Updated user with picture field:',
-            userData.picture
-              ? 'Picture found as: ' + userData.picture
-              : 'No picture field found'
-          );
-        }
-
-        // Store tokens and user info
-        await AsyncStorage.setItem(
-          AUTH_KEYS.ACCESS_TOKEN,
-          tokenData.access_token
-        );
-        await AsyncStorage.setItem(
-          AUTH_KEYS.REFRESH_TOKEN,
-          tokenData.refresh_token
-        );
-        await AsyncStorage.setItem(
-          AUTH_KEYS.USER_INFO,
-          JSON.stringify(userData)
-        );
-
-        setUser(userData);
-
-        // If this was the first login, redirect to onboarding
-        if (tokenData.is_new_user) {
-          router.replace('/onboarding');
-        } else {
-          router.replace('/home');
-        }
+      } else if (result.type === 'error') {
+        console.error('[AuthContext] Auth error:', result.error);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('[AuthContext] Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Process the auth result (code exchange) - used by both direct login and callback
+  const processAuthResult = async (
+    code: string,
+    codeVerifier: string,
+    redirectUri: string
+  ) => {
+    try {
+      console.log('[AuthContext] Processing auth result:', {
+        hasCode: !!code,
+        hasCodeVerifier: !!codeVerifier,
+        redirectUri,
+      });
+
+      // Exchange code for tokens using the backend
+      const tokenResponse = await fetch(
+        `${API_BASE_URL}/auth/google/callback`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code,
+            code_verifier: codeVerifier,
+            redirect_uri: redirectUri,
+          }),
+          credentials: 'include',
+        }
+      );
+
+      if (!tokenResponse.ok) {
+        console.error('[AuthContext] Token exchange failed:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+        });
+        throw new Error('Failed to exchange code for tokens');
+      }
+
+      const tokenData = await tokenResponse.json();
+      console.log('[AuthContext] Token exchange successful');
+
+      // Save the tokens in storage
+      await AsyncStorage.setItem(
+        AUTH_KEYS.ACCESS_TOKEN,
+        tokenData.access_token
+      );
+      await AsyncStorage.setItem(
+        AUTH_KEYS.REFRESH_TOKEN,
+        tokenData.refresh_token
+      );
+      await AsyncStorage.setItem(
+        AUTH_KEYS.USER_INFO,
+        JSON.stringify(tokenData.user)
+      );
+
+      // Update state with user data
+      setUser(tokenData.user);
+      setIsAuthenticated(true);
+
+      // If this was the first login, redirect to onboarding
+      if (tokenData.is_new_user) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/home');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[AuthContext] Failed to process auth result:', error);
+      return false;
     }
   };
 
   // Logout function
   const logout = async () => {
     try {
-      console.log('Starting logout process...');
+      setIsLoading(true);
 
-      // Call backend logout endpoint
-      const accessToken = await AsyncStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
-      if (accessToken) {
-        console.log('Access token found, calling backend logout endpoint');
-        try {
-          const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-          });
+      // Clear tokens from storage
+      await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
+      await AsyncStorage.removeItem(AUTH_KEYS.REFRESH_TOKEN);
 
-          if (response.ok) {
-            console.log('Backend logout successful');
-          } else {
-            console.warn('Backend logout failed with status:', response.status);
-            // Continue with local logout even if backend logout fails
-          }
-        } catch (apiError) {
-          console.error('Backend logout API error:', apiError);
-          // Continue with local logout even if backend call fails
-        }
-      } else {
-        console.log('No access token found, skipping backend logout call');
-      }
-
-      // Clear auth data from storage
-      console.log('Clearing local auth data...');
-      await clearAuthData();
-
-      // Explicitly set user to null to ensure UI updates
+      // Reset state
       setUser(null);
+      setIsAuthenticated(false);
 
-      console.log('Logout complete, redirecting to welcome screen');
-
-      // Force a complete navigation reset to the welcome screen
+      // Navigate to login screen
       router.replace('/');
     } catch (error) {
-      console.error('Logout error:', error);
-
-      // Even if there's an error, try to clear data and redirect
-      try {
-        await AsyncStorage.multiRemove([
-          AUTH_KEYS.ACCESS_TOKEN,
-          AUTH_KEYS.REFRESH_TOKEN,
-          AUTH_KEYS.USER_INFO,
-        ]);
-        setUser(null);
-        router.replace('/');
-      } catch (finalError) {
-        console.error(
-          'Failed to perform emergency cleanup during logout:',
-          finalError
-        );
-        // At this point, we've tried everything we can
-        alert('Logout failed. Please restart the app.');
-      }
+      console.error('[AuthContext] Logout error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Return the provider
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated,
         isLoading,
         login,
         logout,
+        processAuthResult,
       }}
     >
       {children}
