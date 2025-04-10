@@ -6,21 +6,29 @@ import * as WebBrowser from 'expo-web-browser';
 import { colors } from '../src/theme/colors';
 
 /**
- * This component handles the OAuth callback.
- * When users are redirected back from Google with an authorization code,
- * this page will automatically handle the redirect and complete the auth flow.
+ * This component handles the generic OAuth callback.
+ * It's a fallback handler that should only take action if not on the specific
+ * Google callback route.
  */
 export default function AuthCallback() {
   const params = useLocalSearchParams();
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Log parameters received in the URL
-    console.log('Auth callback received params:', params);
+    // Check if we're on a specific auth callback route
+    const isGoogleCallback = window.location.pathname.includes(
+      '/auth/google/callback'
+    );
 
-    // This component doesn't need to do anything special since
-    // WebBrowser.maybeCompleteAuthSession() handles the redirect
-    // in the AuthContext componentt
+    if (isGoogleCallback) {
+      console.log(
+        'On specific Google callback route, deferring to specialized handler'
+      );
+      return; // Let the specialized handler handle it
+    }
+
+    // Log parameters received in the URL
+    console.log('Generic auth callback received params:', params);
 
     // Wait a moment and then redirect the user
     const redirectTimer = setTimeout(() => {

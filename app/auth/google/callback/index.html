@@ -120,13 +120,10 @@
 
           // Display final message
           document.getElementById('status-text').textContent =
-            'Redirecting to app...';
+            'Authentication complete!';
           document.getElementById('progress-bar').style.width = '100%';
 
-          // Redirect to the main app with the query parameters
-          setTimeout(() => {
-            window.location.href = '/' + queryParams;
-          }, 500);
+          // No redirect - let the app handle it
         }
       }, 1000);
     </script>

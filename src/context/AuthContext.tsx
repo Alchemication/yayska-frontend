@@ -225,6 +225,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             redirect_uri: redirectUri,
           }),
           credentials: 'include',
+          // Add mode to handle CORS errors more gracefully
+          mode: 'cors',
         }
       );
 
@@ -233,7 +235,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           status: tokenResponse.status,
           statusText: tokenResponse.statusText,
         });
-        throw new Error('Failed to exchange code for tokens');
+
+        // If we got a valid response but not OK, try to parse error details
+        try {
+          const errorData = await tokenResponse.json();
+          console.error('[AuthContext] Error details:', errorData);
+        } catch (e) {
+          // Ignore json parsing errors
+        }
+
+        throw new Error(
+          `Failed to exchange code for tokens: ${tokenResponse.status} ${tokenResponse.statusText}`
+        );
       }
 
       const tokenData = await tokenResponse.json();
@@ -267,6 +280,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return true;
     } catch (error) {
       console.error('[AuthContext] Failed to process auth result:', error);
+
+      // Check if already authenticated despite the error
+      const accessToken = await AsyncStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+      const userInfo = await AsyncStorage.getItem(AUTH_KEYS.USER_INFO);
+
+      if (accessToken && userInfo) {
+        console.log(
+          '[AuthContext] Found existing credentials despite fetch error'
+        );
+        try {
+          const userData = JSON.parse(userInfo);
+          setUser(userData);
+          setIsAuthenticated(true);
+          router.replace('/home');
+          return true;
+        } catch (e) {
+          console.error('[AuthContext] Error parsing user info:', e);
+        }
+      }
+
       return false;
     }
   };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ export default function GoogleAuthCallback() {
   const auth = useAuth();
   const [status, setStatus] = useState('Initializing...');
   const [progress, setProgress] = useState(10);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     // Create a progress animation
@@ -53,6 +54,16 @@ export default function GoogleAuthCallback() {
     });
 
     const handleCallback = async () => {
+      // Prevent multiple processing
+      if (isProcessingRef.current) {
+        console.log(
+          '[GoogleAuthCallback] Already processing, skipping duplicate call'
+        );
+        return;
+      }
+
+      isProcessingRef.current = true;
+
       // For web redirect flow, process the code
       if (Platform.OS === 'web' && params.code) {
         try {
@@ -76,19 +87,28 @@ export default function GoogleAuthCallback() {
           if (auth.processAuthResult) {
             setStatus('Processing credentials...');
 
-            const success = await auth.processAuthResult(
-              params.code as string,
-              codeVerifier,
-              redirectUri
-            );
+            try {
+              const success = await auth.processAuthResult(
+                params.code as string,
+                codeVerifier,
+                redirectUri
+              );
 
-            // Complete the progress bar
-            setProgress(100);
+              // Complete the progress bar
+              setProgress(100);
 
-            if (success) {
-              setStatus('Authentication successful! Redirecting...');
-            } else {
-              setStatus('Authentication failed. Please try again.');
+              if (success) {
+                setStatus('Authentication successful! Redirecting...');
+              } else {
+                setStatus('Authentication failed. Please try again.');
+                setTimeout(() => router.replace('/'), 2000);
+              }
+            } catch (error) {
+              console.error(
+                '[GoogleAuthCallback] Error during processAuthResult:',
+                error
+              );
+              setStatus('Authentication error. Please try again.');
               setTimeout(() => router.replace('/'), 2000);
             }
 

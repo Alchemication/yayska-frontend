@@ -151,32 +151,45 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        <View style={styles.content}>
-          {mode === 'add' ? (
+        {mode === 'add' ? (
+          <View style={styles.content}>
             <Text style={styles.title}>Add Children</Text>
-          ) : (
-            <View style={styles.welcomeContainer}>
-              <Image
-                source={require('../assets/images/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <Text style={styles.welcomeText}>Welcome!</Text>
-            </View>
-          )}
-          <Text style={styles.subtitle}>
-            {mode === 'add'
-              ? 'Add each child and select their school year.'
-              : "Tell us who you'll be helping with their schoolwork."}
-          </Text>
+            <Text style={styles.subtitle}>
+              Add each child and select their school year.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.headerContainer}>
+            <Image
+              source={require('../assets/images/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.headerSubtitle}>
+              Tell us who you'll be helping with their schoolwork.
+            </Text>
+          </View>
+        )}
 
-          {children.map((child) => (
+        <View style={styles.formContent}>
+          {children.map((child, index) => (
             <View key={child.id} style={styles.childContainer}>
+              <View style={styles.childHeader}>
+                <Text style={styles.childNumber}>Child {index + 1}</Text>
+                {children.length > 1 && (
+                  <Pressable
+                    style={styles.removeButton}
+                    onPress={() => removeChild(child.id)}
+                  >
+                    <Text style={styles.removeButtonText}>Remove</Text>
+                  </Pressable>
+                )}
+              </View>
               <ChildInput
                 childName={child.name}
                 onNameChange={(text) => updateChildName(child.id, text)}
                 onRemove={() => removeChild(child.id)}
-                showRemove={children.length > 1}
+                showRemove={false}
               />
               <Text style={styles.yearLabel}>Select school year:</Text>
               <YearSelector
@@ -217,52 +230,84 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: 16,
   },
-  welcomeContainer: {
-    alignItems: 'center',
-    marginBottom: 8,
+  formContent: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  headerContainer: {
+    backgroundColor: colors.background.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   logo: {
-    width: 200,
-    height: 80,
-    marginBottom: 8,
+    width: 140,
+    height: 36,
+    marginBottom: 6,
   },
-  welcomeText: {
+  headerSubtitle: {
+    fontSize: 15,
+    color: colors.text.secondary,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text.primary,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text.secondary,
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   childContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
     backgroundColor: colors.background.primary,
-    padding: 16,
+    padding: 12,
     borderRadius: commonStyles.borderRadius.medium,
     ...commonStyles.shadow,
+  },
+  childHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.lightGrey,
+  },
+  childNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary.green,
+  },
+  removeButton: {
+    padding: 4,
+  },
+  removeButtonText: {
+    fontSize: 14,
+    color: colors.accent.error,
   },
   yearLabel: {
     fontSize: 16,
     fontWeight: '500',
     color: colors.text.primary,
-    marginBottom: 8,
-    marginTop: 16,
+    marginBottom: 6,
+    marginTop: 10,
   },
   addButton: {
-    padding: 16,
+    backgroundColor: colors.background.primary,
+    padding: 12,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
+    borderRadius: commonStyles.borderRadius.small,
+    borderWidth: 1,
+    borderColor: colors.primary.green,
+    borderStyle: 'dashed',
   },
   addButtonText: {
     color: colors.primary.green,
@@ -271,9 +316,10 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: colors.primary.green,
-    padding: 16,
+    padding: 14,
     borderRadius: commonStyles.borderRadius.medium,
     alignItems: 'center',
+    marginBottom: 24,
     ...commonStyles.shadow,
   },
   continueButtonDisabled: {
