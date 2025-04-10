@@ -42,25 +42,25 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   input: {
     flex: 1,
     backgroundColor: colors.background.primary,
-    padding: 12,
-    borderRadius: commonStyles.borderRadius.medium,
-    fontSize: 16,
+    padding: 10,
+    borderRadius: commonStyles.borderRadius.small,
+    fontSize: 15,
     color: colors.text.primary,
     borderWidth: 1,
     borderColor: colors.neutral.lightGrey,
   },
   removeButton: {
-    marginLeft: 12,
-    padding: 8,
+    marginLeft: 10,
+    padding: 6,
   },
   removeButtonText: {
     color: colors.accent.error,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
 });

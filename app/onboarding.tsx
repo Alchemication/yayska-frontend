@@ -160,11 +160,14 @@ export default function OnboardingScreen() {
           </View>
         ) : (
           <View style={styles.headerContainer}>
-            <Image
-              source={require('../assets/images/logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View style={styles.headerLeft}>
+              <View style={styles.placeholderButton} />
+              <Image
+                source={require('../assets/images/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.headerSubtitle}>
               Tell us who you'll be helping with their schoolwork.
             </Text>
@@ -192,12 +195,14 @@ export default function OnboardingScreen() {
                 showRemove={false}
               />
               <Text style={styles.yearLabel}>Select school year:</Text>
-              <YearSelector
-                selectedYear={child.year}
-                onYearSelect={(yearId, yearName) =>
-                  updateChildYear(child.id, yearId, yearName)
-                }
-              />
+              <View style={styles.yearSelectorContainer}>
+                <YearSelector
+                  selectedYear={child.year}
+                  onYearSelect={(yearId, yearName) =>
+                    updateChildYear(child.id, yearId, yearName)
+                  }
+                />
+              </View>
             </View>
           ))}
 
@@ -239,12 +244,20 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: colors.background.secondary,
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  placeholderButton: {
+    width: 0,
   },
   logo: {
-    width: 140,
-    height: 36,
-    marginBottom: 6,
+    width: 130,
+    height: 34,
+    marginLeft: 0,
   },
   headerSubtitle: {
     fontSize: 15,
@@ -265,9 +278,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   childContainer: {
-    marginBottom: 16,
+    marginBottom: 14,
     backgroundColor: colors.background.primary,
-    padding: 12,
+    padding: 10,
     borderRadius: commonStyles.borderRadius.medium,
     ...commonStyles.shadow,
   },
@@ -275,7 +288,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.lightGrey,
@@ -293,17 +306,20 @@ const styles = StyleSheet.create({
     color: colors.accent.error,
   },
   yearLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     color: colors.text.primary,
-    marginBottom: 6,
-    marginTop: 10,
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  yearSelectorContainer: {
+    marginTop: 4,
   },
   addButton: {
     backgroundColor: colors.background.primary,
-    padding: 12,
+    padding: 10,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     borderRadius: commonStyles.borderRadius.small,
     borderWidth: 1,
     borderColor: colors.primary.green,
@@ -311,15 +327,15 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: colors.primary.green,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
   },
   continueButton: {
     backgroundColor: colors.primary.green,
-    padding: 14,
+    padding: 12,
     borderRadius: commonStyles.borderRadius.medium,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     ...commonStyles.shadow,
   },
   continueButtonDisabled: {

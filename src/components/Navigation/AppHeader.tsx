@@ -68,7 +68,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
           <Image
             source={require('../../../assets/images/logo.png')}
-            style={styles.headerLogo}
+            style={[
+              styles.headerLogo,
+              showBackButton && styles.headerLogoWithBack,
+            ]}
             resizeMode="contain"
           />
         </View>
@@ -139,8 +142,8 @@ export default AppHeader;
 const styles = StyleSheet.create({
   compactHeader: {
     backgroundColor: colors.background.secondary,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -148,18 +151,23 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   headerLogo: {
-    width: 150,
-    height: 40,
-    marginLeft: 8,
+    width: 130,
+    height: 34,
+    marginLeft: 0,
+  },
+  headerLogoWithBack: {
+    width: 110,
+    marginLeft: 4,
   },
   backButton: {
     padding: 4,
-    width: 32,
+    width: 24,
   },
   placeholderButton: {
-    width: 32,
+    width: 0,
   },
   headerRight: {
     flexDirection: 'row',
@@ -167,10 +175,10 @@ const styles = StyleSheet.create({
   },
   childSelector: {
     paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     borderRadius: 6,
     backgroundColor: colors.background.tertiary,
-    marginRight: 8,
+    marginRight: 6,
   },
   childSelectorContent: {
     flexDirection: 'row',
@@ -185,7 +193,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   profileButton: {
-    padding: 4,
+    padding: 2,
   },
   childrenMenu: {
     backgroundColor: colors.background.secondary,
