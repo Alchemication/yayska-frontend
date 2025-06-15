@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,10 +11,11 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, commonStyles } from '../src/theme/colors';
 import { getChildren, clearChildren, Child } from '../src/utils/storage';
+import { resolveActiveChild, setActiveChild } from '../src/utils/activeChild';
 import { LearningGoalCard } from '../src/components/Learning/LearningGoalCard';
 import { api } from '../src/services/api';
 import { SubjectLearningPath, ConceptInPath } from '../src/types/curriculum';
@@ -26,6 +27,7 @@ import {
   TabRoute,
   ChildrenDropdown,
 } from '../src/components/Navigation';
+import { trackEvent } from '../src/utils/analytics';
 
 // Let's first check what props the LearningGoalCard expects
 interface ConceptCardProps {
@@ -58,12 +60,20 @@ export default function ExploreScreen() {
   }, [selectedChild]);
 
   const loadChildren = async () => {
-    const savedChildren = await getChildren();
-    if (savedChildren?.length) {
-      setChildren(savedChildren);
-      setSelectedChild(savedChildren[0]);
-    } else {
-      // No children found, redirect to onboarding
+    try {
+      const savedChildren = await getChildren();
+      if (savedChildren.length > 0) {
+        setChildren(savedChildren);
+
+        // Use active child resolution with persistence
+        const activeChild = await resolveActiveChild(savedChildren);
+        setSelectedChild(activeChild);
+      } else {
+        // No children found, redirect to onboarding
+        router.replace('/onboarding');
+      }
+    } catch (error) {
+      console.error('Error loading children:', error);
       router.replace('/onboarding');
     }
   };
@@ -75,6 +85,16 @@ export default function ExploreScreen() {
       setLoading(true);
       const data = await api.getSubjectLearningPaths(selectedChild.yearId);
       setSubjects(data);
+
+      // Removed: Technical loading event, not user behavior
+      // await trackEvent('LEARNING_PATHS_LOADED', {
+      //   child_year: selectedChild.year,
+      //   subjects_count: data.length,
+      //   total_concepts: data.reduce(
+      //     (sum, subject) => sum + subject.concepts.length,
+      //     0
+      //   ),
+      // });
     } catch (error) {
       console.error('Error loading learning paths:', error);
       Alert.alert(
@@ -132,6 +152,22 @@ export default function ExploreScreen() {
   };
 
   const navigateToConcept = (conceptId: number) => {
+    const concept = subjects
+      .flatMap((subject) => subject.concepts)
+      .find((c) => c.id === conceptId);
+
+    // Track concept click
+    trackEvent('CONCEPT_CLICKED', {
+      concept_id: conceptId,
+      concept_name: concept?.name,
+      subject_name: subjects.find((s) =>
+        s.concepts.some((c) => c.id === conceptId)
+      )?.name,
+      child_year: selectedChild?.year,
+      source_screen: 'explore',
+      complexity: concept?.complexity,
+    });
+
     router.push(`/concept/${conceptId}`);
   };
 
@@ -139,22 +175,71 @@ export default function ExploreScreen() {
     setShowChildrenMenu(!showChildrenMenu);
   };
 
-  const selectChild = (child: Child) => {
+  const selectChild = async (child: Child) => {
+    const previousChild = selectedChild;
+
     setSelectedChild(child);
     setShowChildrenMenu(false);
+
+    // Track child switch
+    await trackEvent('CHILD_SWITCHED', {
+      from_child_year: previousChild?.year,
+      to_child_year: child.year,
+      children_count: children.length,
+      screen: 'explore',
+    });
+
+    // Persist the active child selection
+    try {
+      await setActiveChild(child);
+    } catch (error) {
+      console.error('Error setting active child:', error);
+    }
   };
 
   const toggleSubjectExpansion = (subjectId: number) => {
-    if (expandedSubjectId === subjectId) {
+    const wasExpanded = expandedSubjectId === subjectId;
+    const subject = subjects.find((s) => s.id === subjectId);
+
+    if (wasExpanded) {
       setExpandedSubjectId(null);
     } else {
       setExpandedSubjectId(subjectId);
+
+      // Track subject expansion
+      trackEvent('SUBJECT_EXPANDED', {
+        subject_id: subjectId,
+        subject_name: subject?.name,
+        concepts_count: subject?.concepts.length,
+        child_year: selectedChild?.year,
+      });
     }
   };
 
   const toggleUserProfile = () => {
     setShowUserProfile(!showUserProfile);
   };
+
+  const refreshChildren = useCallback(async () => {
+    await loadChildren();
+  }, []);
+
+  // Track screen view and refresh data when component comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Removed: High-frequency event that creates noise
+      // Consider tracking session-based page views instead
+      // trackEvent('SCREEN_VIEW', {
+      //   screen_name: 'explore',
+      //   child_year: selectedChild?.year,
+      //   children_count: children.length,
+      //   subjects_count: subjects.length,
+      // });
+
+      // Refresh children data
+      refreshChildren();
+    }, [refreshChildren])
+  );
 
   return (
     <SafeAreaView
@@ -197,34 +282,31 @@ export default function ExploreScreen() {
                             ? 'chevron-up'
                             : 'chevron-down'
                         }
-                        size={22}
-                        color={colors.text.primary}
+                        size={20}
+                        color={colors.text.secondary}
                       />
                     </Pressable>
+
                     {expandedSubjectId === subject.id && (
-                      <View style={styles.conceptsContainer}>
+                      <View style={styles.conceptsList}>
                         {subject.concepts.map((concept) => (
-                          <Pressable
+                          <LearningGoalCard
                             key={concept.id}
-                            onPress={() => navigateToConcept(concept.id)}
-                          >
-                            <LearningGoalCard concept={concept} />
-                          </Pressable>
+                            concept={concept}
+                          />
                         ))}
                       </View>
                     )}
                   </View>
                 ))}
               </View>
+
+              {/* Debug reset button - moved to bottom and made less prominent */}
+              <Pressable style={styles.resetButton} onPress={handleReset}>
+                <Text style={styles.resetButtonText}>Reset All Data</Text>
+              </Pressable>
             </>
           )}
-
-          {/* Debug reset button */}
-          <View style={{ marginTop: 40 }}>
-            <Pressable style={styles.resetButton} onPress={handleReset}>
-              <Text style={styles.resetButtonText}>Reset All Data</Text>
-            </Pressable>
-          </View>
         </ScrollView>
 
         {/* User Profile Popover */}
@@ -305,7 +387,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.primary,
   },
-  conceptsContainer: {
+  conceptsList: {
     padding: 16,
     paddingTop: 0,
     gap: 16,

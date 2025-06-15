@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { router } from 'expo-router';
 import { getSubjectColor } from '../../utils/subjects/subjectColors';
+import { trackEvent } from '../../utils/analytics';
 
 // Types
 export interface MonthlyConceptData {
@@ -109,27 +110,55 @@ export const MonthlyConceptsCarousel: React.FC<
   const { previous, current, next } = months;
 
   // Build month array for carousel (only includes months that exist)
-  const monthsArray = [];
+  const monthsArray: Month[] = [];
   if (previous) monthsArray.push(previous);
   monthsArray.push(current);
   if (next) monthsArray.push(next);
 
-  const handleScrollEnd = (event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    // Calculate the active index based on the center position
-    const adjustedX = offsetX - (screenWidth - CARD_WIDTH) / 2;
-    const index = Math.round(adjustedX / (CARD_WIDTH + CARD_SPACING));
-    setActiveIndex(Math.max(0, Math.min(index, monthsArray.length - 1)));
+  const handleScroll = (event: any) => {
+    const scrollX = event.nativeEvent.contentOffset.x;
+    const startX = (screenWidth - CARD_WIDTH) / 2;
+    const adjustedScrollX = Math.max(0, scrollX - startX);
+    const newIndex = Math.round(adjustedScrollX / (CARD_WIDTH + CARD_SPACING));
+    const clampedIndex = Math.max(
+      0,
+      Math.min(newIndex, monthsArray.length - 1)
+    );
+
+    if (clampedIndex !== activeIndex) {
+      const fromMonth = monthsArray[activeIndex];
+      const toMonth = monthsArray[clampedIndex];
+
+      // Simplified: Track meaningful navigation, not micro-interactions
+      trackEvent('MONTHLY_CURRICULUM_NAVIGATION', {
+        from_month: fromMonth?.month_name,
+        to_month: toMonth?.month_name,
+        navigation_type: 'swipe',
+      });
+
+      setActiveIndex(clampedIndex);
+    }
   };
 
   const handleDotPress = (index: number) => {
     if (scrollViewRef.current) {
-      const startX = (screenWidth - CARD_WIDTH) / 2; // Start with left padding
-      const cardPosition = index * (CARD_WIDTH + CARD_SPACING); // Card index * (width + spacing)
+      const startX = (screenWidth - CARD_WIDTH) / 2;
+      const cardPosition = index * (CARD_WIDTH + CARD_SPACING);
       scrollViewRef.current.scrollTo({
         x: startX + cardPosition,
         animated: true,
       });
+
+      const fromMonth = monthsArray[activeIndex];
+      const toMonth = monthsArray[index];
+
+      // Simplified: Track meaningful navigation, not micro-interactions
+      trackEvent('MONTHLY_CURRICULUM_NAVIGATION', {
+        from_month: fromMonth?.month_name,
+        to_month: toMonth?.month_name,
+        navigation_type: 'dot_click',
+      });
+
       setActiveIndex(index);
     }
   };
@@ -147,6 +176,32 @@ export const MonthlyConceptsCarousel: React.FC<
   };
 
   const navigateToConcept = (conceptId: number) => {
+    // Find the concept details for tracking
+    const allConcepts = monthsArray.flatMap((month) => [
+      ...month.essential_concepts,
+      ...month.important_concepts,
+      ...month.supplementary_concepts,
+    ]);
+    const concept = allConcepts.find((c) => c.id === conceptId);
+    const currentMonth = monthsArray[activeIndex];
+
+    // Track concept click from carousel
+    trackEvent('CONCEPT_CLICKED', {
+      concept_id: conceptId,
+      concept_name: concept?.concept_name,
+      subject_name: concept?.subject_name,
+      source_screen: 'home',
+      source_component: 'monthly_carousel',
+      month_name: currentMonth?.month_name,
+      concept_priority: concept
+        ? currentMonth?.essential_concepts.some((c) => c.id === conceptId)
+          ? 'essential'
+          : currentMonth?.important_concepts.some((c) => c.id === conceptId)
+          ? 'important'
+          : 'supplementary'
+        : 'unknown',
+    });
+
     router.push(`/concept/${conceptId}`);
   };
 
@@ -256,7 +311,7 @@ export const MonthlyConceptsCarousel: React.FC<
           horizontal
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
-          onMomentumScrollEnd={handleScrollEnd}
+          onMomentumScrollEnd={handleScroll}
           contentContainerStyle={styles.scrollContent}
           snapToInterval={CARD_WIDTH + CARD_SPACING}
           snapToAlignment="start"

@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { colors } from '../../theme/colors';
-import { Child } from '../../utils/storage';
+import { colors, commonStyles } from '../../theme/colors';
+import { Child } from '../../types/child';
 import { getChildDisplayName } from '../../utils/childDisplayUtils';
 import { useAuth } from '../../context/AuthContext';
 
@@ -25,6 +25,52 @@ interface AppHeaderProps {
   backButtonDestination?: string;
   childrenCount?: number;
 }
+
+// Helper function to generate child avatar colors
+const getChildAvatarColor = (childId: number): string => {
+  const colors_list = [
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FFEAA7',
+    '#DDA0DD',
+    '#98D8C8',
+    '#F7DC6F',
+    '#BB8FCE',
+    '#85C1E9',
+  ];
+  return colors_list[childId % colors_list.length];
+};
+
+// Child Avatar Component
+const ChildAvatar: React.FC<{
+  child: Child;
+  size?: number;
+  showBorder?: boolean;
+}> = ({ child, size = 32, showBorder = false }) => {
+  const backgroundColor = getChildAvatarColor(child.id);
+  const initial = child.name.charAt(0).toUpperCase();
+
+  return (
+    <View
+      style={[
+        styles.avatar,
+        {
+          width: size,
+          height: size,
+          backgroundColor,
+          borderWidth: showBorder ? 2 : 0,
+          borderColor: colors.primary.green,
+        },
+      ]}
+    >
+      <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>
+        {initial}
+      </Text>
+    </View>
+  );
+};
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   children,
@@ -45,6 +91,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     } else {
       router.back();
     }
+  };
+
+  const handleChildSelectorPress = () => {
+    if (actualChildrenCount <= 1) {
+      // Direct navigation for single child
+      router.push('/manage-children');
+    } else {
+      // Show dropdown for multiple children
+      toggleChildrenMenu();
+    }
+  };
+
+  const handleManageChildren = () => {
+    toggleChildrenMenu(); // Close the menu
+    router.push('/manage-children');
   };
 
   // Use either the provided childrenCount or children.length
@@ -80,18 +141,38 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {children && children.length > 0 && (
             <Pressable
               style={styles.childSelector}
-              onPress={toggleChildrenMenu}
-              disabled={actualChildrenCount <= 1}
+              onPress={handleChildSelectorPress}
             >
               <View style={styles.childSelectorContent}>
-                <Text style={styles.selectedChildName}>
-                  {getChildDisplayName(selectedChild)}
-                </Text>
-                {actualChildrenCount > 1 && (
+                {selectedChild && (
+                  <ChildAvatar
+                    child={selectedChild}
+                    size={28}
+                    showBorder={showChildrenMenu}
+                  />
+                )}
+                <View style={styles.childInfo}>
+                  <Text style={styles.selectedChildName}>
+                    {selectedChild?.name}
+                  </Text>
+                  {selectedChild?.year && (
+                    <Text style={styles.selectedChildYear}>
+                      {selectedChild.year}
+                    </Text>
+                  )}
+                </View>
+                {actualChildrenCount > 1 ? (
                   <Ionicons
                     name={showChildrenMenu ? 'chevron-up' : 'chevron-down'}
                     size={18}
                     color={colors.text.primary}
+                    style={styles.childSelectorIcon}
+                  />
+                ) : (
+                  <Ionicons
+                    name="settings-outline"
+                    size={16}
+                    color={colors.text.secondary}
                     style={styles.childSelectorIcon}
                   />
                 )}
@@ -111,26 +192,82 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </View>
       </View>
 
-      {/* Children dropdown */}
+      {/* Enhanced Children dropdown */}
       {showChildrenMenu && children && children.length > 0 && (
         <View style={styles.childrenMenu}>
-          {children.map((child) => (
+          <View style={styles.menuHeader}>
+            <Text style={styles.menuTitle}>
+              {actualChildrenCount > 1 ? 'Select Child' : 'Child Management'}
+            </Text>
             <Pressable
-              key={child.id}
-              style={styles.childMenuItem}
-              onPress={() => selectChild(child)}
+              style={styles.manageButton}
+              onPress={handleManageChildren}
             >
-              <Text
-                style={[
-                  styles.childMenuItemText,
-                  selectedChild?.id === child.id && styles.selectedChildText,
-                ]}
-              >
-                {child.name}
-                {child.year && <Text> ({child.year})</Text>}
-              </Text>
+              <Ionicons
+                name="settings-outline"
+                size={16}
+                color={colors.primary.green}
+              />
+              <Text style={styles.manageButtonText}>Manage</Text>
             </Pressable>
-          ))}
+          </View>
+
+          {actualChildrenCount > 1 &&
+            children.map((child) => (
+              <Pressable
+                key={child.id}
+                style={[
+                  styles.childMenuItem,
+                  selectedChild?.id === child.id &&
+                    styles.selectedChildMenuItem,
+                ]}
+                onPress={() => selectChild(child)}
+              >
+                <ChildAvatar
+                  child={child}
+                  size={36}
+                  showBorder={selectedChild?.id === child.id}
+                />
+                <View style={styles.childMenuInfo}>
+                  <Text
+                    style={[
+                      styles.childMenuItemText,
+                      selectedChild?.id === child.id &&
+                        styles.selectedChildText,
+                    ]}
+                  >
+                    {child.name}
+                  </Text>
+                  {child.year && (
+                    <Text
+                      style={[
+                        styles.childMenuItemYear,
+                        selectedChild?.id === child.id &&
+                          styles.selectedChildYearText,
+                      ]}
+                    >
+                      {child.year}
+                    </Text>
+                  )}
+                </View>
+                {selectedChild?.id === child.id && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={colors.primary.green}
+                  />
+                )}
+              </Pressable>
+            ))}
+
+          {actualChildrenCount === 1 && (
+            <View style={styles.singleChildInfo}>
+              <Text style={styles.singleChildText}>
+                Tap "Manage" to add more children or edit {selectedChild?.name}
+                's details.
+              </Text>
+            </View>
+          )}
         </View>
       )}
     </>
@@ -174,57 +311,138 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   childSelector: {
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderRadius: 6,
-    backgroundColor: colors.background.tertiary,
-    marginRight: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: commonStyles.borderRadius.medium,
+    backgroundColor: colors.background.primary,
+    marginRight: 8,
+    ...commonStyles.shadow,
   },
   childSelectorContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  childInfo: {
+    marginLeft: 8,
+    flex: 1,
+  },
   selectedChildName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text.primary,
   },
+  selectedChildYear: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 1,
+  },
   childSelectorIcon: {
-    marginLeft: 4,
+    marginLeft: 6,
   },
   profileButton: {
     padding: 2,
   },
+
+  // Avatar styles
+  avatar: {
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: colors.neutral.white,
+    fontWeight: '600',
+  },
+
+  // Enhanced dropdown styles
   childrenMenu: {
-    backgroundColor: colors.background.secondary,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    backgroundColor: colors.background.primary,
+    marginHorizontal: 12,
+    marginTop: 4,
+    borderRadius: commonStyles.borderRadius.medium,
+    ...commonStyles.shadow,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 2,
+        elevation: 4,
       },
       web: {
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
       },
     }),
   },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.lightGrey,
+  },
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: commonStyles.borderRadius.small,
+    backgroundColor: colors.background.secondary,
+  },
+  manageButtonText: {
+    fontSize: 14,
+    color: colors.primary.green,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
   childMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#eaeaea',
+    paddingHorizontal: 16,
+  },
+  selectedChildMenuItem: {
+    backgroundColor: colors.background.secondary,
+  },
+  childMenuInfo: {
+    flex: 1,
+    marginLeft: 12,
   },
   childMenuItemText: {
     fontSize: 16,
     color: colors.text.primary,
+    fontWeight: '500',
+  },
+  childMenuItemYear: {
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginTop: 2,
   },
   selectedChildText: {
     fontWeight: '600',
     color: colors.primary.green,
+  },
+  selectedChildYearText: {
+    color: colors.primary.green,
+    opacity: 0.8,
+  },
+  singleChildInfo: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGrey,
+    borderRadius: commonStyles.borderRadius.medium,
+  },
+  singleChildText: {
+    fontSize: 14,
+    color: colors.text.primary,
   },
 });

@@ -1,21 +1,19 @@
-import { Child } from './storage'; // Import only the type
+import { Child } from '../types/child';
 import { getYearNameById } from './schoolYearUtils';
 
 // Function to get the display name for a child (including year if available)
 export const getChildDisplayName = (child: Child | null): string => {
   if (!child) return 'Select Child';
 
-  // Get year name from our static data
-  const yearName = getYearNameById(child.yearId);
-
-  // If we have a year name, display it with it
-  if (yearName) {
-    return `${child.name} (${yearName})`;
-  }
-
-  // If we don't have a year name but have child.year, use that
+  // API always provides year name, so use it directly
   if (child.year) {
     return `${child.name} (${child.year})`;
+  }
+
+  // Fallback to getting year name from static data
+  const yearName = getYearNameById(child.yearId);
+  if (yearName) {
+    return `${child.name} (${yearName})`;
   }
 
   // Otherwise just return the child's name
@@ -26,10 +24,9 @@ export const getChildDisplayName = (child: Child | null): string => {
 export const getChildYearName = (child: Child | null): string => {
   if (!child) return '';
 
-  // Try to get year name from our static data first
-  const yearName = getYearNameById(child.yearId);
-  if (yearName) return yearName;
+  // API provides year name directly
+  if (child.year) return child.year;
 
-  // Fall back to child.year if available
-  return child.year || '';
+  // Fallback to static data
+  return getYearNameById(child.yearId) || '';
 };

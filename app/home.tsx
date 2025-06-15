@@ -12,16 +12,17 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, commonStyles } from '../src/theme/colors';
 import { getChildren, clearChildren, Child } from '../src/utils/storage';
+import { resolveActiveChild, setActiveChild } from '../src/utils/activeChild';
 import { api } from '../src/services/api';
 import {
   MonthlyConceptsCarousel,
   CurriculumPlan,
 } from '../src/components/Learning/MonthlyConceptsCarousel';
-import { updateChildrenWithYearNames } from '../src/utils/educationUtils';
 import { getChildDisplayName } from '../src/utils/childDisplayUtils';
 import { useAuth } from '../src/context/AuthContext';
 import { UserProfile } from '../src/components/Auth/UserProfile';
@@ -31,6 +32,7 @@ import {
   TabRoute,
   ChildrenDropdown,
 } from '../src/components/Navigation';
+import { trackEvent } from '../src/utils/analytics';
 
 export default function HomeScreen() {
   const { user, isAuthenticated } = useAuth();
@@ -41,11 +43,6 @@ export default function HomeScreen() {
   const [curriculumPlans, setCurriculumPlans] = useState<CurriculumPlan[]>([]);
   const [isSummerMode, setIsSummerMode] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
-
-  useEffect(() => {
-    updateChildrenWithYearNames();
-    loadChildren();
-  }, []);
 
   useEffect(() => {
     if (children.length > 0) {
@@ -59,32 +56,69 @@ export default function HomeScreen() {
     }
   }, [children]);
 
+  const refreshChildren = useCallback(async () => {
+    await loadChildren();
+  }, []);
+
+  // Track screen view and refresh data when component comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Removed: High-frequency event that creates noise
+      // Consider tracking session-based page views instead
+      // trackEvent('SCREEN_VIEW', {
+      //   screen_name: 'home',
+      //   child_year: selectedChild?.year,
+      //   children_count: children.length,
+      // });
+
+      // Refresh children data
+      refreshChildren();
+    }, [refreshChildren])
+  );
+
+  useEffect(() => {
+    loadChildren();
+  }, []);
+
   const loadChildren = async () => {
-    const savedChildren = await getChildren();
-    if (savedChildren?.length) {
-      setChildren(savedChildren);
-      setSelectedChild(savedChildren[0]);
-    } else {
-      // No children found, redirect to onboarding
+    try {
+      setLoading(true);
+      const savedChildren = await getChildren();
+      if (savedChildren.length > 0) {
+        setChildren(savedChildren);
+
+        // Use active child resolution with persistence
+        const activeChild = await resolveActiveChild(savedChildren);
+        setSelectedChild(activeChild);
+      } else {
+        // No children found, redirect to onboarding
+        router.replace('/onboarding');
+      }
+    } catch (error) {
+      console.error('Error loading children:', error);
+      Alert.alert('Error', 'Failed to load children. Please try again.', [
+        { text: 'OK' },
+      ]);
       router.replace('/onboarding');
+    } finally {
+      setLoading(false);
     }
   };
 
   const loadMonthlyCurriculum = async (yearIds: number[]) => {
     try {
-      setLoading(true);
-      const response = await api.getMonthlyCurriculum(yearIds);
-      setCurriculumPlans(response.curriculum_plans);
-      setIsSummerMode(response.is_summer_mode);
+      const data = await api.getMonthlyCurriculum(yearIds);
+      setCurriculumPlans(data.curriculum_plans);
+      setIsSummerMode(data.is_summer_mode);
+
+      // Track curriculum loaded
+      await trackEvent('CURRICULUM_LOADED', {
+        year_ids: yearIds,
+        is_summer_mode: data.is_summer_mode,
+        plans_count: data.curriculum_plans.length,
+      });
     } catch (error) {
       console.error('Error loading monthly curriculum:', error);
-      Alert.alert(
-        'Error',
-        'Failed to load monthly curriculum. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -133,16 +167,41 @@ export default function HomeScreen() {
   };
 
   const navigateToExplore = () => {
-    router.push('/explore' as any);
+    // Track navigation to explore
+    trackEvent('NAVIGATION', {
+      from_screen: 'home',
+      to_screen: 'explore',
+      trigger: 'view_all_concepts',
+      child_year: selectedChild?.year,
+    });
+
+    router.push('/explore');
   };
 
   const toggleChildrenMenu = () => {
     setShowChildrenMenu(!showChildrenMenu);
   };
 
-  const selectChild = (child: Child) => {
+  const selectChild = async (child: Child) => {
+    const previousChild = selectedChild;
+
     setSelectedChild(child);
     setShowChildrenMenu(false);
+
+    // Track child switch
+    await trackEvent('CHILD_SWITCHED', {
+      from_child_year: previousChild?.year,
+      to_child_year: child.year,
+      children_count: children.length,
+      screen: 'home',
+    });
+
+    // Persist the active child selection
+    try {
+      await setActiveChild(child);
+    } catch (error) {
+      console.error('Error setting active child:', error);
+    }
   };
 
   const toggleUserProfile = () => {

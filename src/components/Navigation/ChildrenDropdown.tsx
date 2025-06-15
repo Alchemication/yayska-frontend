@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { colors } from '../../theme/colors';
-import { Child } from '../../utils/storage';
+import { Child } from '../../types/child';
 
 interface ChildrenDropdownProps {
   children: Child[];

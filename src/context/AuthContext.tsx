@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import Constants from 'expo-constants';
 import { ENV } from '../utils/environment';
+import { trackEvent } from '../utils/analytics';
 
 // Register for redirect
 WebBrowser.maybeCompleteAuthSession();
@@ -115,8 +116,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Login function
   const login = async () => {
     try {
-      console.log('[AuthContext] Starting login process');
       setIsLoading(true);
+      console.log('[AuthContext] Starting login process');
+
+      // Track login attempt
+      await trackEvent('LOGIN_ATTEMPT', {
+        method: 'google',
+        platform: Platform.OS,
+      });
 
       // Get the client ID for the current platform
       const clientId = Platform.select({
@@ -193,6 +200,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (error) {
       console.error('[AuthContext] Login error:', error);
+
+      // Track login failure
+      await trackEvent('LOGIN_FAILED', {
+        method: 'google',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     code: string,
     codeVerifier: string,
     redirectUri: string
-  ) => {
+  ): Promise<boolean> => {
     try {
       console.log('[AuthContext] Processing auth result:', {
         hasCode: !!code,
@@ -270,6 +285,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(tokenData.user);
       setIsAuthenticated(true);
 
+      // Track successful login
+      await trackEvent('USER_LOGIN', {
+        method: 'google',
+        is_new_user: tokenData.is_new_user,
+        platform: Platform.OS,
+      });
+
+      // Track registration for new users
+      if (tokenData.is_new_user) {
+        await trackEvent('USER_REGISTRATION', {
+          method: 'google',
+          platform: Platform.OS,
+        });
+      }
+
       // If this was the first login, redirect to onboarding
       if (tokenData.is_new_user) {
         router.replace('/onboarding');
@@ -280,6 +310,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return true;
     } catch (error) {
       console.error('[AuthContext] Failed to process auth result:', error);
+
+      // Track authentication failure
+      await trackEvent('AUTHENTICATION_FAILED', {
+        method: 'google',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
 
       // Check if already authenticated despite the error
       const accessToken = await AsyncStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
@@ -308,6 +344,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     try {
       setIsLoading(true);
+
+      // Track logout
+      await trackEvent('USER_LOGOUT', {
+        method: 'manual',
+        platform: Platform.OS,
+      });
 
       // Clear tokens from storage
       await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);

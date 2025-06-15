@@ -15,19 +15,14 @@ import { ChildInput } from '../src/components/Onboarding/ChildInput';
 import { YearSelector } from '../src/components/Onboarding/YearSelector';
 import { colors, commonStyles } from '../src/theme/colors';
 import { useLocalSearchParams } from 'expo-router';
-import {
-  saveChildren,
-  addChildren,
-  Child as StorageChild,
-  getChildren,
-} from '../src/utils/storage';
+import { getChildren, saveChild } from '../src/utils/storage';
 import {
   EDUCATION_LEVELS,
   SCHOOL_YEARS,
   getSchoolYearsByLevelId,
 } from '../src/constants/education';
-import { enrichChildWithYearName } from '../src/utils/educationUtils';
 import { useAuth } from '../src/context/AuthContext';
+import { trackEvent } from '../src/utils/analytics';
 
 // Use a local type for the state that can have null values during input
 type ChildInput = {
@@ -52,6 +47,14 @@ export default function OnboardingScreen() {
   ]);
 
   const [loading, setLoading] = useState(false);
+
+  // Track onboarding start
+  useEffect(() => {
+    trackEvent('ONBOARDING_STARTED', {
+      mode: mode || 'initial',
+      is_authenticated: isAuthenticated,
+    });
+  }, [mode, isAuthenticated]);
 
   // Check if we should redirect based on existing children
   useEffect(() => {
@@ -83,15 +86,14 @@ export default function OnboardingScreen() {
   }, [isAuthenticated, mode, router]);
 
   const addChild = () => {
-    setChildren([
-      ...children,
-      {
-        id: `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: '',
-        year: null,
-        yearId: null,
-      },
-    ]);
+    const newChild = {
+      id: `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: '',
+      year: null,
+      yearId: null,
+    };
+
+    setChildren([...children, newChild]);
   };
 
   const removeChild = (id: string) => {
@@ -112,6 +114,13 @@ export default function OnboardingScreen() {
         child.id === id ? { ...child, year: yearName, yearId } : child
       )
     );
+
+    // Track year selection
+    trackEvent('CHILD_YEAR_SELECTED', {
+      year_id: yearId,
+      year_name: yearName,
+      mode: mode || 'initial',
+    });
   };
 
   const handleContinue = async () => {
@@ -125,26 +134,51 @@ export default function OnboardingScreen() {
     }
 
     try {
-      // Convert to the storage format (year is optional, yearId is required)
-      const childrenToSave: StorageChild[] = children.map((child) => ({
-        id: child.id,
-        name: child.name,
-        yearId: child.yearId || 0,
-        year: child.year || undefined,
-      }));
+      setLoading(true);
 
-      if (mode === 'add') {
-        await addChildren(childrenToSave);
-      } else {
-        await saveChildren(childrenToSave);
+      // Track onboarding completion attempt
+      await trackEvent('ONBOARDING_COMPLETION_ATTEMPT', {
+        children_count: children.length,
+        mode: mode || 'initial',
+        year_distribution: children.reduce((acc, child) => {
+          if (child.year) {
+            acc[child.year] = (acc[child.year] || 0) + 1;
+          }
+          return acc;
+        }, {} as Record<string, number>),
+      });
+
+      // Create each child via API
+      for (const child of children) {
+        if (child.yearId && child.name.trim()) {
+          await saveChild(child.name.trim(), child.yearId);
+        }
       }
+
+      // Track successful onboarding completion
+      await trackEvent('ONBOARDING_COMPLETED', {
+        children_count: children.length,
+        mode: mode || 'initial',
+      });
+
       router.replace('/home');
     } catch (error) {
+      console.error('Error saving children:', error);
+
+      // Track onboarding failure
+      await trackEvent('ONBOARDING_FAILED', {
+        children_count: children.length,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        mode: mode || 'initial',
+      });
+
       Alert.alert(
         'Error',
         'Failed to save children information. Please try again.',
         [{ text: 'OK' }]
       );
+    } finally {
+      setLoading(false);
     }
   };
 

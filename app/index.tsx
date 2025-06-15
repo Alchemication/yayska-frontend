@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '../src/theme/colors';
-import { getChildren, ensureChildrenHaveYearNames } from '../src/utils/storage';
+import { getChildren } from '../src/utils/storage';
 import { useAuth } from '../src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,9 +31,6 @@ export default function WelcomeScreen() {
   }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
-    // Ensure all stored children have year names
-    ensureChildrenHaveYearNames();
-
     const checkExistingChildren = async () => {
       try {
         setCheckingRedirect(true);

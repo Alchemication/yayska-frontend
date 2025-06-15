@@ -10,6 +10,14 @@ import {
   EducationLevel,
   EducationLevelsResponse,
 } from '../types/education';
+import {
+  ApiChild,
+  CreateChildRequest,
+  UpdateChildRequest,
+  ChildrenResponse,
+  DeleteChildResponse,
+  Child,
+} from '../types/child';
 import { CurriculumPlan } from '../components/Learning/MonthlyConceptsCarousel';
 import {
   EDUCATION_LEVELS,
@@ -18,6 +26,7 @@ import {
 } from '../utils/schoolYearUtils';
 import { fetchWithAuth, getAccessToken } from './authApi';
 import Constants from 'expo-constants';
+import { AnalyticsEvent, setEventSender } from '../utils/analytics';
 
 // Get environment variable helper
 const getEnvVariable = (key: string, defaultValue: string = ''): string => {
@@ -53,7 +62,51 @@ interface MonthlyCurriculumResponse {
   is_summer_mode: boolean;
 }
 
+// Helper function to convert API child to app format
+export const convertApiChildToLocal = (apiChild: ApiChild): Child => ({
+  id: apiChild.id,
+  name: apiChild.name,
+  yearId: apiChild.school_year_id,
+  year: apiChild.school_year_name,
+  userId: apiChild.user_id,
+  memory: apiChild.memory,
+  createdAt: apiChild.created_at,
+  updatedAt: apiChild.updated_at,
+});
+
 export const api = {
+  // Analytics tracking
+  trackEvent: async (event: AnalyticsEvent): Promise<void> => {
+    const apiCallId = Math.random().toString(36).substr(2, 9);
+
+    try {
+      console.log(
+        `[API-${apiCallId}] 🚀 SENDING to backend:`,
+        event.event_type,
+        event.session_id.substring(0, 8) + '...',
+        'Payload keys:',
+        Object.keys(event.payload).join(', ')
+      );
+
+      const response = await fetchAPI<void>('/events/', {
+        method: 'POST',
+        body: JSON.stringify(event),
+      });
+
+      console.log(
+        `[API-${apiCallId}] ✅ SUCCESS backend response:`,
+        event.event_type
+      );
+    } catch (error) {
+      console.error(
+        `[API-${apiCallId}] ❌ FAILED backend call:`,
+        event.event_type,
+        error
+      );
+      // Don't throw - analytics failures shouldn't break the app
+    }
+  },
+
   getEducationLevels: async (): Promise<EducationLevel[]> => {
     console.log('Using static education levels data');
     return EDUCATION_LEVELS;
@@ -95,4 +148,44 @@ export const api = {
       throw error;
     }
   },
+
+  // Children API endpoints
+  children: {
+    // GET /api/v1/children/
+    getAll: async (): Promise<Child[]> => {
+      const response = await fetchAPI<ChildrenResponse>('/children/');
+      return response.children.map(convertApiChildToLocal);
+    },
+
+    // POST /api/v1/children/
+    create: async (childData: CreateChildRequest): Promise<Child> => {
+      const apiChild = await fetchAPI<ApiChild>('/children/', {
+        method: 'POST',
+        body: JSON.stringify(childData),
+      });
+      return convertApiChildToLocal(apiChild);
+    },
+
+    // PUT /api/v1/children/{id}
+    update: async (
+      id: number,
+      childData: UpdateChildRequest
+    ): Promise<Child> => {
+      const apiChild = await fetchAPI<ApiChild>(`/children/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(childData),
+      });
+      return convertApiChildToLocal(apiChild);
+    },
+
+    // DELETE /api/v1/children/{id}
+    delete: async (id: number): Promise<DeleteChildResponse> => {
+      return fetchAPI<DeleteChildResponse>(`/children/${id}`, {
+        method: 'DELETE',
+      });
+    },
+  },
 };
+
+// Set up the analytics event sender
+setEventSender(api.trackEvent);

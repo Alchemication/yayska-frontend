@@ -16,7 +16,8 @@ import { api } from '../../src/services/api';
 import { ConceptMetadata } from '../../src/types/concept';
 import { AppHeader } from '../../src/components/Navigation/AppHeader';
 import { UserProfile } from '../../src/components/Auth/UserProfile';
-import { Child } from '../../src/utils/storage';
+import { Child } from '../../src/types/child';
+import { trackEvent } from '../../src/utils/analytics';
 
 export default function ConceptDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -45,21 +46,59 @@ export default function ConceptDetailScreen() {
     setShowUserProfile(!showUserProfile);
   };
 
+  // Track section changes
+  const handleSectionChange = (section: string) => {
+    const changeId = Math.random().toString(36).substr(2, 9);
+    console.log(`[CONCEPT-${changeId}] 🔄 Section change triggered:`, {
+      from: activeSection,
+      to: section,
+      conceptId: Number(id),
+      conceptName: concept?.concept_name,
+    });
+
+    // Track the section switch
+    trackEvent('CONCEPT_SECTION_SWITCHED', {
+      concept_id: Number(id),
+      concept_name: concept?.concept_name,
+      from_section: activeSection,
+      to_section: section,
+    });
+
+    console.log(
+      `[CONCEPT-${changeId}] 🎯 trackEvent called, updating state...`
+    );
+    setActiveSection(section);
+    console.log(`[CONCEPT-${changeId}] ✅ State updated to:`, section);
+  };
+
   useEffect(() => {
     const loadConcept = async () => {
       try {
         setLoading(true);
         const data = await api.getConceptMetadata(Number(id));
         setConcept(data as ConceptMetadata);
+
+        // Track concept view - only when concept is first loaded
+        await trackEvent('CONCEPT_VIEW', {
+          concept_id: Number(id),
+          concept_name: data.concept_name,
+          initial_section: activeSection,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load concept');
+
+        // Track concept load error
+        await trackEvent('CONCEPT_LOAD_ERROR', {
+          concept_id: Number(id),
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
       } finally {
         setLoading(false);
       }
     };
 
     loadConcept();
-  }, [id]);
+  }, [id]); // Only depend on id, not activeSection
 
   if (loading) {
     return (
@@ -99,7 +138,7 @@ export default function ConceptDetailScreen() {
           <ConceptDetailCard
             concept={concept}
             activeSection={activeSection}
-            onSectionChange={setActiveSection}
+            onSectionChange={handleSectionChange}
           />
         </ScrollView>
 

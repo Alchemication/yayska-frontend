@@ -159,6 +159,53 @@ yayska-frontend/
 
 This frontend connects to a FastAPI + PostgreSQL backend. The API service is configured in `src/services/api.ts`.
 
+## Analytics
+
+Yayska includes a privacy-focused analytics system to understand user journeys and improve the product experience.
+
+### How It Works
+
+- **Session Management**: Uses UUID v4 session IDs for privacy
+- **Smart Sessions**: New sessions start on app launch, after 20+ minutes in background, or on new days
+- **Privacy First**: Only anonymized usage patterns are tracked, no personal information
+- **Reliable**: Analytics failures never break the app experience
+
+### Usage
+
+Track events anywhere in the app:
+
+```typescript
+import { trackEvent } from '../utils/analytics';
+
+// Track user interactions
+await trackEvent('CONCEPT_CLICKED', {
+  concept_id: 123,
+  concept_name: 'Addition',
+  subject_name: 'Mathematics',
+});
+```
+
+### What We Track
+
+- User authentication and onboarding flows
+- Screen navigation and content interaction
+- Learning content engagement patterns
+- App usage sessions and timing
+
+### Backend Integration
+
+Events are sent to `POST /api/v1/events/` with the structure:
+
+```json
+{
+  "event_type": "CONCEPT_CLICKED",
+  "payload": { "concept_id": 123, "timestamp": "2025-01-15T14:30:00.000Z" },
+  "session_id": "uuid-v4-session-id"
+}
+```
+
+The system is configured in `src/utils/analytics.ts` and automatically initialized in the app layout.
+
 ## Contributing
 
 We welcome contributions! Please see our contributing guidelines for more details.
