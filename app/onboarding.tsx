@@ -97,9 +97,7 @@ export default function OnboardingScreen() {
   };
 
   const removeChild = (id: string) => {
-    if (children.length > 1) {
-      setChildren(children.filter((child) => child.id !== id));
-    }
+    setChildren(children.filter((child) => child.id !== id));
   };
 
   const updateChildName = (id: string, name: string) => {
@@ -213,14 +211,12 @@ export default function OnboardingScreen() {
             <View key={child.id} style={styles.childContainer}>
               <View style={styles.childHeader}>
                 <Text style={styles.childNumber}>Child {index + 1}</Text>
-                {children.length > 1 && (
-                  <Pressable
-                    style={styles.removeButton}
-                    onPress={() => removeChild(child.id)}
-                  >
-                    <Text style={styles.removeButtonText}>Remove</Text>
-                  </Pressable>
-                )}
+                <Pressable
+                  style={styles.removeButton}
+                  onPress={() => removeChild(child.id)}
+                >
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </Pressable>
               </View>
               <ChildInput
                 childName={child.name}

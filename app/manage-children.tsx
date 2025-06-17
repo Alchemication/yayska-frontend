@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -24,6 +25,7 @@ import { Child } from '../src/types/child';
 import { AppHeader } from '../src/components/Navigation/AppHeader';
 import { UserProfile } from '../src/components/Auth/UserProfile';
 import { Ionicons } from '@expo/vector-icons';
+import { clearActiveChild } from '../src/utils/activeChild';
 
 // Local type for editing state
 type ChildEdit = {
@@ -84,20 +86,6 @@ export default function ManageChildrenScreen() {
   const removeChild = async (id: number | string) => {
     console.log('removeChild called with id:', id);
     console.log('editingChildren.length:', editingChildren.length);
-
-    if (editingChildren.length <= 1) {
-      console.log('Cannot remove - only one child left');
-      if (Platform.OS === 'web') {
-        alert('You must have at least one child to use the app.');
-      } else {
-        Alert.alert(
-          'Cannot Remove',
-          'You must have at least one child to use the app.',
-          [{ text: 'OK' }]
-        );
-      }
-      return;
-    }
 
     const child = editingChildren.find((c) => c.id === id);
     console.log('Found child:', child);
@@ -178,6 +166,17 @@ export default function ManageChildrenScreen() {
           setChildren(children.filter((c) => c.id !== id));
           console.log('Removed from children state');
 
+          // If this was the last child, clear active child from storage
+          const remainingChildren = children.filter((c) => c.id !== id);
+          if (remainingChildren.length === 0) {
+            try {
+              await clearActiveChild();
+              console.log('Cleared active child from storage');
+            } catch (error) {
+              console.error('Error clearing active child:', error);
+            }
+          }
+
           // Success confirmation with positive messaging
           if (Platform.OS === 'web') {
             alert(
@@ -247,6 +246,12 @@ export default function ManageChildrenScreen() {
   };
 
   const handleSave = async () => {
+    // If no children, redirect to onboarding
+    if (editingChildren.length === 0) {
+      router.replace('/onboarding');
+      return;
+    }
+
     // Validate all children have names and years
     const invalidChildren = editingChildren.filter(
       (child) => !child.name.trim() || !child.yearId
@@ -350,82 +355,126 @@ export default function ManageChildrenScreen() {
         </View>
 
         <View style={styles.formContent}>
-          {editingChildren.map((child, index) => (
-            <View key={child.id} style={styles.childContainer}>
-              <View style={styles.childHeader}>
-                <Text style={styles.childNumber}>
-                  {child.isNew
-                    ? 'New Child'
-                    : `${child.name || 'Child'} ${index + 1}`}
+          {editingChildren.length === 0 ? (
+            // Empty state when no children
+            <View style={styles.emptyState}>
+              <Ionicons
+                name="people-outline"
+                size={64}
+                color={colors.neutral.grey}
+                style={styles.emptyStateIcon}
+              />
+              <Text style={styles.emptyStateTitle}>No Children Added</Text>
+              <Text style={styles.emptyStateSubtitle}>
+                Add your first child to get started with personalized learning
+                content.
+              </Text>
+              <Pressable style={styles.primaryAddButton} onPress={addChild}>
+                <Ionicons
+                  name="add-circle"
+                  size={20}
+                  color={colors.neutral.white}
+                />
+                <Text style={styles.primaryAddButtonText}>
+                  Add Your First Child
                 </Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.removeButton,
-                    pressed && styles.removeButtonPressed,
-                  ]}
-                  onPress={() => {
-                    console.log('Trash button pressed for child:', child.id);
-                    console.log('Child data:', child);
-                    removeChild(child.id);
-                  }}
-                  onPressIn={() => console.log('Trash button press started')}
-                  onPressOut={() => console.log('Trash button press ended')}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  testID={`delete-child-${child.id}`}
-                >
-                  <Ionicons
-                    name="trash-outline"
-                    size={20}
-                    color={colors.accent?.error || '#FF6B6B'}
+              </Pressable>
+            </View>
+          ) : (
+            // Normal state with children
+            <>
+              {editingChildren.map((child, index) => (
+                <View key={child.id} style={styles.childContainer}>
+                  <View style={styles.childHeader}>
+                    <Text style={styles.childNumber}>
+                      {child.isNew
+                        ? 'New Child'
+                        : `${child.name || 'Child'} ${index + 1}`}
+                    </Text>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.removeButton,
+                        pressed && styles.removeButtonPressed,
+                      ]}
+                      onPress={() => {
+                        console.log(
+                          'Trash button pressed for child:',
+                          child.id
+                        );
+                        console.log('Child data:', child);
+                        removeChild(child.id);
+                      }}
+                      onPressIn={() =>
+                        console.log('Trash button press started')
+                      }
+                      onPressOut={() => console.log('Trash button press ended')}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      testID={`delete-child-${child.id}`}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={20}
+                        color={colors.accent?.error || '#FF6B6B'}
+                      />
+                    </Pressable>
+                  </View>
+
+                  <ChildInput
+                    childName={child.name}
+                    onNameChange={(text) => updateChildName(child.id, text)}
+                    onRemove={() => removeChild(child.id)}
+                    showRemove={false}
                   />
+
+                  <Text style={styles.yearLabel}>Select school year:</Text>
+                  <View style={styles.yearSelectorContainer}>
+                    <YearSelector
+                      selectedYear={child.year}
+                      onYearSelect={(yearId, yearName) =>
+                        updateChildYear(child.id, yearId, yearName)
+                      }
+                    />
+                  </View>
+                </View>
+              ))}
+
+              <Pressable style={styles.addButton} onPress={addChild}>
+                <Ionicons
+                  name="add-circle-outline"
+                  size={20}
+                  color={colors.primary.green}
+                />
+                <Text style={styles.addButtonText}>Add Another Child</Text>
+              </Pressable>
+
+              <View style={styles.actionButtons}>
+                <Pressable
+                  style={styles.cancelButton}
+                  onPress={handleNavigation}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.saveButton,
+                    saving && styles.saveButtonDisabled,
+                  ]}
+                  onPress={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={colors.neutral.white}
+                    />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                  )}
                 </Pressable>
               </View>
-
-              <ChildInput
-                childName={child.name}
-                onNameChange={(text) => updateChildName(child.id, text)}
-                onRemove={() => removeChild(child.id)}
-                showRemove={false}
-              />
-
-              <Text style={styles.yearLabel}>Select school year:</Text>
-              <View style={styles.yearSelectorContainer}>
-                <YearSelector
-                  selectedYear={child.year}
-                  onYearSelect={(yearId, yearName) =>
-                    updateChildYear(child.id, yearId, yearName)
-                  }
-                />
-              </View>
-            </View>
-          ))}
-
-          <Pressable style={styles.addButton} onPress={addChild}>
-            <Ionicons
-              name="add-circle-outline"
-              size={20}
-              color={colors.primary.green}
-            />
-            <Text style={styles.addButtonText}>Add Another Child</Text>
-          </Pressable>
-
-          <View style={styles.actionButtons}>
-            <Pressable style={styles.cancelButton} onPress={handleNavigation}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator size="small" color={colors.neutral.white} />
-              ) : (
-                <Text style={styles.saveButtonText}>Save Changes</Text>
-              )}
-            </Pressable>
-          </View>
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -578,5 +627,44 @@ const styles = StyleSheet.create({
     top: 60,
     right: 16,
     zIndex: 10,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    minHeight: 300,
+  },
+  emptyStateIcon: {
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateSubtitle: {
+    fontSize: 15,
+    color: colors.text.secondary,
+    marginBottom: 24,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  primaryAddButton: {
+    backgroundColor: colors.primary.green,
+    padding: 16,
+    borderRadius: commonStyles.borderRadius.medium,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    ...commonStyles.shadow,
+  },
+  primaryAddButtonText: {
+    color: colors.neutral.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
