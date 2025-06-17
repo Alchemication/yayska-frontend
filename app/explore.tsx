@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, commonStyles } from '../src/theme/colors';
-import { getChildren, clearChildren, Child } from '../src/utils/storage';
+import { getChildren, Child } from '../src/utils/storage';
 import { resolveActiveChild, setActiveChild } from '../src/utils/activeChild';
 import { LearningGoalCard } from '../src/components/Learning/LearningGoalCard';
 import { api } from '../src/services/api';
@@ -107,70 +107,6 @@ export default function ExploreScreen() {
     }
   };
 
-  const handleReset = () => {
-    console.log('Reset clicked');
-
-    const performReset = () => {
-      console.log('Reset confirmed');
-      // First clear the local state
-      setChildren([]);
-      setSelectedChild(null);
-      setShowChildrenMenu(false);
-
-      // Then clear storage and navigate
-      clearChildren()
-        .then(() => {
-          console.log('Storage cleared, navigating...');
-          router.replace('/onboarding');
-        })
-        .catch((error) => {
-          console.error('Reset error:', error);
-          if (Platform.OS === 'web') {
-            window.alert('Failed to reset. Please try again.');
-          } else {
-            Alert.alert('Error', 'Failed to reset. Please try again.', [
-              { text: 'OK' },
-            ]);
-          }
-        });
-    };
-
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to reset?')) {
-        performReset();
-      }
-    } else {
-      Alert.alert(
-        'Confirm Reset',
-        'This will clear all your data and return to the welcome screen. Are you sure?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Reset', onPress: performReset, style: 'destructive' },
-        ]
-      );
-    }
-  };
-
-  const navigateToConcept = (conceptId: number) => {
-    const concept = subjects
-      .flatMap((subject) => subject.concepts)
-      .find((c) => c.id === conceptId);
-
-    // Track concept click
-    trackEvent('CONCEPT_CLICKED', {
-      concept_id: conceptId,
-      concept_name: concept?.name,
-      subject_name: subjects.find((s) =>
-        s.concepts.some((c) => c.id === conceptId)
-      )?.name,
-      child_year: selectedChild?.year,
-      source_screen: 'explore',
-      complexity: concept?.complexity,
-    });
-
-    router.push(`/concept/${conceptId}`);
-  };
-
   const toggleChildrenMenu = () => {
     setShowChildrenMenu(!showChildrenMenu);
   };
@@ -258,7 +194,7 @@ export default function ExploreScreen() {
         {/* Main content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={styles.content}
         >
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -267,24 +203,29 @@ export default function ExploreScreen() {
             </View>
           ) : (
             <>
-              <Text style={styles.sectionTitle}>Subjects</Text>
-              <View style={styles.subjectsContainer}>
+              <Text style={styles.header}>Subjects</Text>
+              <View style={styles.content}>
                 {subjects.map((subject) => (
-                  <View key={subject.id} style={styles.subjectCard}>
+                  <View key={subject.id} style={styles.subjectSection}>
                     <Pressable
                       style={styles.subjectHeader}
                       onPress={() => toggleSubjectExpansion(subject.id)}
                     >
                       <Text style={styles.subjectTitle}>{subject.name}</Text>
-                      <Ionicons
-                        name={
-                          expandedSubjectId === subject.id
-                            ? 'chevron-up'
-                            : 'chevron-down'
-                        }
-                        size={20}
-                        color={colors.text.secondary}
-                      />
+                      <View style={styles.subjectHeaderRight}>
+                        <Text style={styles.conceptCount}>
+                          {subject.concepts.length} concepts
+                        </Text>
+                        <Ionicons
+                          name={
+                            expandedSubjectId === subject.id
+                              ? 'chevron-up'
+                              : 'chevron-down'
+                          }
+                          size={20}
+                          color={colors.text.secondary}
+                        />
+                      </View>
                     </Pressable>
 
                     {expandedSubjectId === subject.id && (
@@ -300,11 +241,6 @@ export default function ExploreScreen() {
                   </View>
                 ))}
               </View>
-
-              {/* Debug reset button - moved to bottom and made less prominent */}
-              <Pressable style={styles.resetButton} onPress={handleReset}>
-                <Text style={styles.resetButtonText}>Reset All Data</Text>
-              </Pressable>
             </>
           )}
         </ScrollView>
@@ -333,9 +269,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  contentContainer: {
+  content: {
     padding: 16,
-    paddingBottom: 80, // Extra padding at the bottom for the tab bar
+    paddingBottom: 80,
   },
   loadingContainer: {
     flex: 1,
@@ -344,64 +280,57 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: 12,
+    color: colors.text.secondary,
+    fontSize: 16,
+  },
+  header: {
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginBottom: 4,
+  },
+  subtitle: {
     fontSize: 16,
     color: colors.text.secondary,
+    lineHeight: 22,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  subjectSection: {
     marginBottom: 16,
-    color: colors.text.primary,
-  },
-  subjectsContainer: {
-    gap: 16,
-  },
-  subjectCard: {
     backgroundColor: colors.background.secondary,
-    borderRadius: 8,
+    borderRadius: commonStyles.borderRadius.medium,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-      web: {
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      },
-    }),
+    ...commonStyles.shadow,
   },
   subjectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    backgroundColor: colors.background.secondary,
   },
   subjectTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text.primary,
+    flex: 1,
+  },
+  subjectHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  conceptCount: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginRight: 8,
   },
   conceptsList: {
     padding: 16,
     paddingTop: 0,
-    gap: 16,
-  },
-  resetButton: {
-    backgroundColor: colors.accent.error,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignSelf: 'center',
-  },
-  resetButtonText: {
-    color: colors.background.primary,
-    fontWeight: '600',
+    backgroundColor: colors.background.primary,
   },
   profileOverlay: {
     position: 'absolute',

@@ -65,18 +65,6 @@ export async function addChildren(newChildren: Child[]): Promise<void> {
   }
 }
 
-export async function clearChildren(): Promise<void> {
-  try {
-    const children = await getChildren();
-    for (const child of children) {
-      await deleteChild(child.id);
-    }
-  } catch (error) {
-    console.error('Error clearing children:', error);
-    throw error;
-  }
-}
-
 // Deprecated - no longer needed with API
 export async function ensureChildrenHaveYearNames(): Promise<void> {
   // No-op - API always returns year names

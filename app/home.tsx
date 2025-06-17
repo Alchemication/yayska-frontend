@@ -16,7 +16,7 @@ import { router, useFocusEffect, usePathname } from 'expo-router';
 import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, commonStyles } from '../src/theme/colors';
-import { getChildren, clearChildren, Child } from '../src/utils/storage';
+import { getChildren, Child } from '../src/utils/storage';
 import { resolveActiveChild, setActiveChild } from '../src/utils/activeChild';
 import { api } from '../src/services/api';
 import {
@@ -39,6 +39,7 @@ export default function HomeScreen() {
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [loading, setLoading] = useState(true);
+  const [curriculumLoading, setCurriculumLoading] = useState(false);
   const [showChildrenMenu, setShowChildrenMenu] = useState(false);
   const [curriculumPlans, setCurriculumPlans] = useState<CurriculumPlan[]>([]);
   const [isSummerMode, setIsSummerMode] = useState(false);
@@ -107,6 +108,7 @@ export default function HomeScreen() {
 
   const loadMonthlyCurriculum = async (yearIds: number[]) => {
     try {
+      setCurriculumLoading(true);
       const data = await api.getMonthlyCurriculum(yearIds);
       setCurriculumPlans(data.curriculum_plans);
       setIsSummerMode(data.is_summer_mode);
@@ -119,50 +121,8 @@ export default function HomeScreen() {
       });
     } catch (error) {
       console.error('Error loading monthly curriculum:', error);
-    }
-  };
-
-  const handleReset = () => {
-    console.log('Reset clicked');
-
-    const performReset = () => {
-      console.log('Reset confirmed');
-      // First clear the local state
-      setChildren([]);
-      setSelectedChild(null);
-      setShowChildrenMenu(false);
-
-      // Then clear storage and navigate
-      clearChildren()
-        .then(() => {
-          console.log('Storage cleared, navigating...');
-          router.replace('/onboarding');
-        })
-        .catch((error) => {
-          console.error('Reset error:', error);
-          if (Platform.OS === 'web') {
-            window.alert('Failed to reset. Please try again.');
-          } else {
-            Alert.alert('Error', 'Failed to reset. Please try again.', [
-              { text: 'OK' },
-            ]);
-          }
-        });
-    };
-
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to reset?')) {
-        performReset();
-      }
-    } else {
-      Alert.alert(
-        'Confirm Reset',
-        'This will clear all your data and return to the welcome screen. Are you sure?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Reset', onPress: performReset, style: 'destructive' },
-        ]
-      );
+    } finally {
+      setCurriculumLoading(false);
     }
   };
 
@@ -246,15 +206,10 @@ export default function HomeScreen() {
             <MonthlyConceptsCarousel
               curriculumPlans={curriculumPlans}
               selectedYearId={selectedChild?.yearId || undefined}
-              isLoading={loading}
+              isLoading={loading || curriculumLoading}
               onViewAllConcepts={navigateToExplore}
             />
           </View>
-
-          {/* Debug reset button - moved to bottom and made less prominent */}
-          <Pressable style={styles.resetButton} onPress={handleReset}>
-            <Text style={styles.resetButtonText}>Reset All Data</Text>
-          </Pressable>
         </ScrollView>
 
         {/* User Profile Popover */}
@@ -308,21 +263,6 @@ const styles = StyleSheet.create({
   },
   carouselContainer: {
     marginBottom: 8,
-  },
-  resetButton: {
-    marginTop: 30,
-    backgroundColor: 'transparent',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignSelf: 'center',
-    borderWidth: 1,
-    borderColor: colors.accent.error,
-  },
-  resetButtonText: {
-    color: colors.accent.error,
-    fontSize: 14,
-    fontWeight: '500',
   },
   profileOverlay: {
     position: 'absolute',
