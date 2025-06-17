@@ -17,11 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 type YearSelectorProps = {
   selectedYear: string | null;
   onYearSelect: (yearId: number, yearName: string) => void;
+  disabled?: boolean;
 };
 
 export function YearSelector({
   selectedYear,
   onYearSelect,
+  disabled = false,
 }: YearSelectorProps) {
   const [years, setYears] = useState<SchoolYear[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,6 +132,7 @@ export function YearSelector({
               key={year.id}
               style={styles.yearItem}
               onPress={() => onYearSelect(year.id, year.year_name)}
+              disabled={disabled}
             >
               {/* Timeline node with background */}
               <View style={styles.nodeContainer}>

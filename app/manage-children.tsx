@@ -42,6 +42,15 @@ export default function ManageChildrenScreen() {
   const [editingChildren, setEditingChildren] = useState<ChildEdit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [creatingChildren, setCreatingChildren] = useState<
+    Set<string | number>
+  >(new Set());
+  const [deletingChildren, setDeletingChildren] = useState<
+    Set<string | number>
+  >(new Set());
+  const [updatingChildren, setUpdatingChildren] = useState<
+    Set<string | number>
+  >(new Set());
   const [showUserProfile, setShowUserProfile] = useState(false);
 
   useEffect(() => {
@@ -141,17 +150,8 @@ export default function ManageChildrenScreen() {
       if (userConfirmed) {
         console.log('User confirmed deletion, starting process...');
         try {
-          // Show loading state during deletion
-          if (Platform.OS === 'web') {
-            console.log('Starting deletion process...');
-          } else {
-            Alert.alert(
-              'Deleting...',
-              'Please wait while we remove all data for this child.',
-              [],
-              { cancelable: false }
-            );
-          }
+          // Set loading state for this specific child
+          setDeletingChildren((prev) => new Set(prev).add(id));
 
           console.log('About to call deleteChild API with id:', child.id);
           // Immediately delete from backend
@@ -204,6 +204,13 @@ export default function ManageChildrenScreen() {
               [{ text: 'OK' }]
             );
           }
+        } finally {
+          // Remove loading state for this child
+          setDeletingChildren((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(id);
+            return newSet;
+          });
         }
       } else {
         console.log('User cancelled deletion');
@@ -282,8 +289,20 @@ export default function ManageChildrenScreen() {
       // Handle updates and creations
       for (const editChild of editingChildren) {
         if (editChild.isNew) {
-          // Create new child
-          await saveChild(editChild.name.trim(), editChild.yearId!);
+          // Set loading state for this specific child
+          setCreatingChildren((prev) => new Set(prev).add(editChild.id));
+
+          try {
+            // Create new child
+            await saveChild(editChild.name.trim(), editChild.yearId!);
+          } finally {
+            // Remove loading state for this child
+            setCreatingChildren((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(editChild.id);
+              return newSet;
+            });
+          }
         } else {
           // Check if child was modified
           const originalChild = originalChildren.find(
@@ -294,11 +313,23 @@ export default function ManageChildrenScreen() {
             (originalChild.name !== editChild.name.trim() ||
               originalChild.yearId !== editChild.yearId)
           ) {
-            await updateChild(
-              originalChild.id,
-              editChild.name.trim(),
-              editChild.yearId!
-            );
+            // Set loading state for this specific child
+            setUpdatingChildren((prev) => new Set(prev).add(editChild.id));
+
+            try {
+              await updateChild(
+                originalChild.id,
+                editChild.name.trim(),
+                editChild.yearId!
+              );
+            } finally {
+              // Remove loading state for this child
+              setUpdatingChildren((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(editChild.id);
+                return newSet;
+              });
+            }
           }
         }
       }
@@ -316,6 +347,8 @@ export default function ManageChildrenScreen() {
       }
     } finally {
       setSaving(false);
+      setCreatingChildren(new Set()); // Clear all loading states
+      setUpdatingChildren(new Set()); // Clear all updating states
     }
   };
 
@@ -391,32 +424,85 @@ export default function ManageChildrenScreen() {
                         ? 'New Child'
                         : `${child.name || 'Child'} ${index + 1}`}
                     </Text>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.removeButton,
-                        pressed && styles.removeButtonPressed,
-                      ]}
-                      onPress={() => {
-                        console.log(
-                          'Trash button pressed for child:',
-                          child.id
-                        );
-                        console.log('Child data:', child);
-                        removeChild(child.id);
-                      }}
-                      onPressIn={() =>
-                        console.log('Trash button press started')
-                      }
-                      onPressOut={() => console.log('Trash button press ended')}
-                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                      testID={`delete-child-${child.id}`}
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={20}
-                        color={colors.accent?.error || '#FF6B6B'}
-                      />
-                    </Pressable>
+                    <View style={styles.childHeaderActions}>
+                      {creatingChildren.has(child.id) && (
+                        <View style={styles.childLoadingContainer}>
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary.green}
+                          />
+                          <Text style={styles.childLoadingText}>
+                            Creating...
+                          </Text>
+                        </View>
+                      )}
+                      {updatingChildren.has(child.id) && (
+                        <View style={styles.childLoadingContainer}>
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary.green}
+                          />
+                          <Text style={styles.childLoadingText}>
+                            Updating...
+                          </Text>
+                        </View>
+                      )}
+                      {deletingChildren.has(child.id) && (
+                        <View style={styles.childLoadingContainer}>
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.accent?.error || '#FF6B6B'}
+                          />
+                          <Text
+                            style={[
+                              styles.childLoadingText,
+                              styles.childDeletingText,
+                            ]}
+                          >
+                            Deleting...
+                          </Text>
+                        </View>
+                      )}
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.removeButton,
+                          pressed && styles.removeButtonPressed,
+                        ]}
+                        onPress={() => {
+                          console.log(
+                            'Trash button pressed for child:',
+                            child.id
+                          );
+                          console.log('Child data:', child);
+                          removeChild(child.id);
+                        }}
+                        onPressIn={() =>
+                          console.log('Trash button press started')
+                        }
+                        onPressOut={() =>
+                          console.log('Trash button press ended')
+                        }
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        testID={`delete-child-${child.id}`}
+                        disabled={
+                          creatingChildren.has(child.id) ||
+                          updatingChildren.has(child.id) ||
+                          deletingChildren.has(child.id)
+                        }
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={20}
+                          color={
+                            creatingChildren.has(child.id) ||
+                            updatingChildren.has(child.id) ||
+                            deletingChildren.has(child.id)
+                              ? colors.neutral.grey
+                              : colors.accent?.error || '#FF6B6B'
+                          }
+                        />
+                      </Pressable>
+                    </View>
                   </View>
 
                   <ChildInput
@@ -424,6 +510,11 @@ export default function ManageChildrenScreen() {
                     onNameChange={(text) => updateChildName(child.id, text)}
                     onRemove={() => removeChild(child.id)}
                     showRemove={false}
+                    disabled={
+                      creatingChildren.has(child.id) ||
+                      updatingChildren.has(child.id) ||
+                      deletingChildren.has(child.id)
+                    }
                   />
 
                   <Text style={styles.yearLabel}>Select school year:</Text>
@@ -432,6 +523,11 @@ export default function ManageChildrenScreen() {
                       selectedYear={child.year}
                       onYearSelect={(yearId, yearName) =>
                         updateChildYear(child.id, yearId, yearName)
+                      }
+                      disabled={
+                        creatingChildren.has(child.id) ||
+                        updatingChildren.has(child.id) ||
+                        deletingChildren.has(child.id)
                       }
                     />
                   </View>
@@ -464,10 +560,34 @@ export default function ManageChildrenScreen() {
                   disabled={saving}
                 >
                   {saving ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={colors.neutral.white}
-                    />
+                    <View style={styles.saveLoadingContainer}>
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.neutral.white}
+                      />
+                      <Text
+                        style={[styles.saveButtonText, styles.saveLoadingText]}
+                      >
+                        {(() => {
+                          const hasNew = editingChildren.some(
+                            (child) => child.isNew
+                          );
+                          const hasUpdates = editingChildren.some(
+                            (child) => !child.isNew
+                          );
+
+                          if (hasNew && hasUpdates) {
+                            return 'Creating and updating children...';
+                          } else if (hasNew) {
+                            return 'Creating children...';
+                          } else if (hasUpdates) {
+                            return 'Updating children...';
+                          } else {
+                            return 'Saving changes...';
+                          }
+                        })()}
+                      </Text>
+                    </View>
                   ) : (
                     <Text style={styles.saveButtonText}>Save Changes</Text>
                   )}
@@ -547,6 +667,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary.green,
+  },
+  childHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  childLoadingContainer: {
+    marginRight: 8,
+  },
+  childLoadingText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.text.secondary,
+  },
+  childDeletingText: {
+    color: colors.accent?.error || '#FF6B6B',
   },
   removeButton: {
     padding: 8,
@@ -665,6 +800,14 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
+  },
+  saveLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveLoadingText: {
     marginLeft: 8,
   },
 });

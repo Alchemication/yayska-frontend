@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -243,12 +244,22 @@ export default function OnboardingScreen() {
           <Pressable
             style={[
               styles.continueButton,
-              !children.every((child) => child.yearId) &&
+              (!children.every((child) => child.yearId) || loading) &&
                 styles.continueButtonDisabled,
             ]}
             onPress={handleContinue}
+            disabled={loading || !children.every((child) => child.yearId)}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.neutral.white} />
+                <Text style={[styles.continueButtonText, styles.loadingText]}>
+                  Creating children...
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.continueButtonText}>Continue</Text>
+            )}
           </Pressable>
         </View>
       </ScrollView>
@@ -375,5 +386,13 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginLeft: 8,
   },
 });
