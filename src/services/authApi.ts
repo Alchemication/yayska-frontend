@@ -24,9 +24,14 @@ const API_BASE_URL = getEnvVariable(
 
 // Error class for auth-related errors
 class AuthApiError extends Error {
-  constructor(public status: number, message: string) {
+  status: number;
+  data: any;
+
+  constructor(status: number, message: string, data: any = null) {
     super(message);
     this.name = 'AuthApiError';
+    this.status = status;
+    this.data = data;
   }
 }
 
@@ -80,9 +85,11 @@ export const fetchWithAuth = async <T>(
         });
 
         if (!retryResponse.ok) {
+          const errorData = await retryResponse.json().catch(() => null);
           throw new AuthApiError(
             retryResponse.status,
-            `API Error: ${retryResponse.statusText}`
+            `API Error: ${retryResponse.statusText}`,
+            errorData
           );
         }
 
@@ -96,17 +103,23 @@ export const fetchWithAuth = async <T>(
 
     // Handle other non-OK responses
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
       throw new AuthApiError(
         response.status,
-        `API Error: ${response.statusText}`
+        `API Error: ${response.statusText}`,
+        errorData
       );
     }
 
-    return response.json();
+    // Try to parse JSON, but gracefully fail if there's no body
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
   } catch (error) {
     if (error instanceof AuthApiError) {
       throw error;
     }
+    // Re-throw other errors
+    console.error('Network or other error:', error);
     throw new Error('Network error: Unable to connect to the server');
   }
 };
