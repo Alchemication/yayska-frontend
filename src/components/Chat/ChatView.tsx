@@ -22,7 +22,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ChatMessageResponse, ChatMessageRole } from '../../types/chat';
 import { colors } from '../../theme/colors';
-import { FeedbackModal } from './FeedbackModal';
 import Markdown from 'react-native-markdown-display';
 
 // MessageBubble Component
@@ -173,10 +172,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 size={24}
                 color={colors.text.primary}
               />
-              <Text style={styles.modalTitle}>Provide additional feedback</Text>
+              <Text style={styles.modalTitle}>Help us improve!</Text>
             </View>
             <Text style={styles.modalSubtitle}>
-              Your feedback is valuable in helping Yay improve.
+              Your feedback helps us improve Yay for all parents.
             </Text>
             <TextInput
               style={styles.feedbackInput}
@@ -502,32 +501,35 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 24,
   },
   modalContent: {
-    width: '100%',
     backgroundColor: colors.background.primary,
     borderRadius: 16,
     padding: 24,
+    width: '90%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 8,
     color: colors.text.primary,
-    marginLeft: 12,
   },
   modalSubtitle: {
     fontSize: 14,
