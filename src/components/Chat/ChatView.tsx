@@ -80,74 +80,78 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             : styles.assistantMessageContainer,
         ]}
       >
-        {!isUser && (
-          <View style={styles.assistantAvatar}>
-            <Text style={styles.avatarText}>Y</Text>
-          </View>
-        )}
-        <View
-          style={[
-            styles.messageBubble,
-            isUser ? styles.userMessageBubble : styles.assistantMessageBubble,
-          ]}
-        >
-          {isUser ? (
+        {isUser ? (
+          <View
+            style={[
+              styles.messageBubble,
+              isUser ? styles.userMessageBubble : styles.assistantMessageBubble,
+            ]}
+          >
             <Text style={styles.userMessageText}>{message.content}</Text>
-          ) : (
-            <Markdown style={markdownStyles}>{message.content}</Markdown>
-          )}
-        </View>
-        {!isUser && (
-          <View style={styles.feedbackContainer}>
-            <Pressable
-              onPress={() => handleOpenFeedbackModal(1)}
-              disabled={feedbackGiven}
-              style={[
-                styles.thumbButton,
-                feedbackGiven &&
-                  message.feedback_thumbs === 1 &&
-                  styles.thumbButtonActive,
-              ]}
-            >
-              <Ionicons
-                name={
-                  feedbackGiven && message.feedback_thumbs === 1
-                    ? 'thumbs-up'
-                    : 'thumbs-up-outline'
-                }
-                size={18}
-                color={
-                  feedbackGiven && message.feedback_thumbs === 1
-                    ? colors.primary.green
-                    : colors.text.secondary
-                }
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => handleOpenFeedbackModal(-1)}
-              disabled={feedbackGiven}
-              style={[
-                styles.thumbButton,
-                feedbackGiven &&
-                  message.feedback_thumbs === -1 &&
-                  styles.thumbButtonActive,
-              ]}
-            >
-              <Ionicons
-                name={
-                  feedbackGiven && message.feedback_thumbs === -1
-                    ? 'thumbs-down'
-                    : 'thumbs-down-outline'
-                }
-                size={18}
-                color={
-                  feedbackGiven && message.feedback_thumbs === -1
-                    ? colors.accent.error
-                    : colors.text.secondary
-                }
-              />
-            </Pressable>
           </View>
+        ) : (
+          <>
+            <View style={styles.assistantMessageRow}>
+              <View style={styles.assistantAvatar}>
+                <Text style={styles.avatarText}>Y</Text>
+              </View>
+              <View
+                style={[styles.messageBubble, styles.assistantMessageBubble]}
+              >
+                <Markdown style={markdownStyles}>{message.content}</Markdown>
+              </View>
+            </View>
+            <View style={styles.feedbackContainer}>
+              <Pressable
+                onPress={() => handleOpenFeedbackModal(1)}
+                disabled={feedbackGiven}
+                style={[
+                  styles.thumbButton,
+                  feedbackGiven &&
+                    message.feedback_thumbs === 1 &&
+                    styles.thumbButtonActive,
+                ]}
+              >
+                <Ionicons
+                  name={
+                    feedbackGiven && message.feedback_thumbs === 1
+                      ? 'thumbs-up'
+                      : 'thumbs-up-outline'
+                  }
+                  size={18}
+                  color={
+                    feedbackGiven && message.feedback_thumbs === 1
+                      ? colors.primary.green
+                      : colors.text.secondary
+                  }
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => handleOpenFeedbackModal(-1)}
+                disabled={feedbackGiven}
+                style={[
+                  styles.thumbButton,
+                  feedbackGiven &&
+                    message.feedback_thumbs === -1 &&
+                    styles.thumbButtonActive,
+                ]}
+              >
+                <Ionicons
+                  name={
+                    feedbackGiven && message.feedback_thumbs === -1
+                      ? 'thumbs-down'
+                      : 'thumbs-down-outline'
+                  }
+                  size={18}
+                  color={
+                    feedbackGiven && message.feedback_thumbs === -1
+                      ? colors.accent.error
+                      : colors.text.secondary
+                  }
+                />
+              </Pressable>
+            </View>
+          </>
         )}
       </View>
 
@@ -350,16 +354,23 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     marginBottom: 16,
-    maxWidth: '85%',
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
   userMessageContainer: {
     alignSelf: 'flex-end',
     flexDirection: 'row-reverse',
+    maxWidth: '85%',
   },
   assistantMessageContainer: {
     alignSelf: 'flex-start',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    maxWidth: '95%',
+  },
+  assistantMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   assistantAvatar: {
     width: 32,
@@ -403,7 +414,7 @@ const styles = StyleSheet.create({
   feedbackContainer: {
     flexDirection: 'row',
     marginTop: 8,
-    marginLeft: 40, // Align with message bubble
+    marginLeft: 40,
   },
   thumbButton: {
     marginHorizontal: 4,
