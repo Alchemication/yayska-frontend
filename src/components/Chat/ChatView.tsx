@@ -306,13 +306,24 @@ export const ChatView: React.FC<ChatViewProps> = ({
   isSendingMessage,
 }) => {
   const flatListRef = useRef<FlatList>(null);
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(
-        () => flatListRef.current?.scrollToEnd({ animated: true }),
-        100
-      );
+    if (messages.length > 0 && flatListRef.current) {
+      if (isInitialLoad.current) {
+        // On the initial load, we give it a moment longer to render the list
+        // and then jump to the end without animation for reliability.
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+          isInitialLoad.current = false;
+        }, 200);
+      } else {
+        // For subsequent messages, we can use a quicker, animated scroll.
+        setTimeout(
+          () => flatListRef.current?.scrollToEnd({ animated: true }),
+          100
+        );
+      }
     }
   }, [messages]);
 

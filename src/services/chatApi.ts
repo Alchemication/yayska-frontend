@@ -1,4 +1,4 @@
-import { fetchWithAuth } from './authApi';
+import { fetchWithAuth, getAccessToken, API_BASE_URL } from './authApi';
 import {
   ChatSessionFindOrCreateRequest,
   ChatSessionResponse,
@@ -42,6 +42,55 @@ export const chatApi = {
         },
       }
     );
+  },
+
+  streamMessage: async (
+    chatId: string,
+    message: UserMessageCreate,
+    onChunk: (chunk: string) => void
+  ): Promise<void> => {
+    const accessToken = await getAccessToken();
+    const url = `${API_BASE_URL}${BASE_URL}/${chatId}/messages/stream`;
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(message),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Request failed with status ${response.status}: ${errorText}`
+        );
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          onChunk(chunk);
+        }
+      }
+    } catch (error) {
+      console.error('Error during streaming:', error);
+      throw error;
+    }
   },
 
   updateMessageFeedback: (

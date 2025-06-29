@@ -118,63 +118,64 @@ export default function ChatScreen() {
   }, [id, messages.length]);
 
   const handleSendMessage = async (text: string) => {
-    if (!id) return;
+    if (!id || isSending) return;
 
     const userMessage: ChatMessageResponse = {
-      id: `temp-${Date.now()}`, // Better temp ID
+      id: `user-${Date.now()}`,
       session_id: id,
       role: ChatMessageRole.USER,
       content: text,
       created_at: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const assistantMessagePlaceholder: ChatMessageResponse = {
+      id: `assistant-${Date.now()}`,
+      session_id: id,
+      role: ChatMessageRole.ASSISTANT,
+      content: '',
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMessage, assistantMessagePlaceholder]);
     setIsSending(true);
 
     try {
-      // Track message sent
       await trackEvent('CHAT_MESSAGE_SENT', {
         session_id: id,
         message_length: text.length,
-        message_count: messages.length + 1,
       });
 
-      const assistantMessage = await chatApi.sendMessage(id, { content: text });
-
-      // Replace temp message with real one and add assistant response
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== userMessage.id),
-        { ...userMessage, id: `user-${Date.now()}` }, // Give it a proper ID
-        assistantMessage,
-      ]);
-
-      // Track assistant response received
-      await trackEvent('CHAT_RESPONSE_RECEIVED', {
-        session_id: id,
-        response_length: assistantMessage.content.length,
+      await chatApi.streamMessage(id, { content: text }, (chunk) => {
+        // Sanitize chunk if it comes with quotes
+        const cleanedChunk = chunk.replace(/^"|"$/g, '');
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMessagePlaceholder.id
+              ? { ...m, content: m.content + cleanedChunk }
+              : m
+          )
+        );
       });
+
+      // After stream is done, we could fetch the final message object
+      // from the backend if we need its definitive ID or created_at time.
+      // For now, the placeholder becomes the final message.
     } catch (error: any) {
-      console.error('Failed to send message:', error);
+      console.error('Failed to send or stream message:', error);
+      crossPlatformAlert(
+        'Error',
+        'Could not get a response from Yay. Please try again.'
+      );
 
-      let errorMessage =
-        'Could not send message. Please check your connection and try again.';
+      // Remove the user message and the placeholder on failure
+      setMessages((prev) =>
+        prev.filter(
+          (m) =>
+            m.id !== userMessage.id && m.id !== assistantMessagePlaceholder.id
+        )
+      );
 
-      if (error.status === 429) {
-        errorMessage =
-          error.data?.error?.message ||
-          'You have reached your daily chat limit.';
-      } else if (error.status >= 500) {
-        errorMessage =
-          'Our servers are currently busy. Please try again in a few moments.';
-      }
-
-      crossPlatformAlert('Error', errorMessage);
-
-      // Remove the temp message on failure
-      setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
-
-      // Track send error
-      await trackEvent('CHAT_SEND_ERROR', {
+      await trackEvent('CHAT_STREAM_ERROR', {
         session_id: id,
         error: error instanceof Error ? error.message : 'Unknown error',
       });

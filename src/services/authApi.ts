@@ -15,7 +15,7 @@ const getEnvVariable = (key: string, defaultValue: string = ''): string => {
 };
 
 // API base URL from environment variables with fallbacks
-const API_BASE_URL = getEnvVariable(
+export const API_BASE_URL = getEnvVariable(
   'API_URL',
   process.env.NODE_ENV === 'production'
     ? 'https://yayska-backend.vercel.app/api/v1'
