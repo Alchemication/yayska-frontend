@@ -117,7 +117,10 @@ export default function ChatScreen() {
     };
   }, [id, messages.length]);
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (
+    text: string,
+    metadata?: { source: string; prompt_text?: string }
+  ) => {
     if (!id || isSending) return;
 
     const userMessage: ChatMessageResponse = {
@@ -143,6 +146,8 @@ export default function ChatScreen() {
       await trackEvent('CHAT_MESSAGE_SENT', {
         session_id: id,
         message_length: text.length,
+        source: metadata?.source || 'user_typed',
+        prompt_text: metadata?.prompt_text,
       });
 
       await chatApi.streamMessage(id, { content: text }, (chunk) => {
@@ -263,6 +268,7 @@ export default function ChatScreen() {
             onSendMessage={handleSendMessage}
             onFeedback={handleFeedback}
             isSendingMessage={isSending}
+            conceptName={conceptName}
           />
         </>
       )}

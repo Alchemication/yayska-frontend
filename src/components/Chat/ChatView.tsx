@@ -224,9 +224,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 interface ChatInputProps {
   onSend: (text: string) => void;
   isSending: boolean;
+  placeholder?: string;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSend, isSending }) => {
+const ChatInput: React.FC<ChatInputProps> = ({
+  onSend,
+  isSending,
+  placeholder = 'Ask a question...',
+}) => {
   const [text, setText] = useState('');
   const buttonScale = useSharedValue(0);
 
@@ -258,7 +263,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isSending }) => {
         style={styles.input}
         value={text}
         onChangeText={setText}
-        placeholder="Ask a question..."
+        placeholder={placeholder}
         placeholderTextColor={colors.text.tertiary}
         multiline
       />
@@ -294,9 +299,13 @@ const TypingIndicator: React.FC = () => (
 // Main ChatView Component
 interface ChatViewProps {
   messages: ChatMessageResponse[];
-  onSendMessage: (text: string) => void;
+  onSendMessage: (
+    text: string,
+    metadata?: { source: string; prompt_text?: string }
+  ) => void;
   onFeedback: (messageId: string, vote: 1 | -1, text?: string) => Promise<void>;
   isSendingMessage: boolean;
+  conceptName?: string;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -304,6 +313,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onSendMessage,
   onFeedback,
   isSendingMessage,
+  conceptName,
 }) => {
   const flatListRef = useRef<FlatList>(null);
   const isInitialLoad = useRef(true);
@@ -344,10 +354,71 @@ export const ChatView: React.FC<ChatViewProps> = ({
         keyExtractor={(item) => item.id}
         style={styles.list}
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          messages.length === 0 && conceptName ? (
+            <SuggestedPrompts
+              onPromptPress={(prompt) =>
+                onSendMessage(prompt, {
+                  source: 'suggested_prompt',
+                  prompt_text: prompt,
+                })
+              }
+            />
+          ) : null
+        }
         ListFooterComponent={isSendingMessage ? <TypingIndicator /> : null}
       />
-      <ChatInput onSend={onSendMessage} isSending={isSendingMessage} />
+      <ChatInput
+        onSend={(text) => onSendMessage(text, { source: 'user_typed' })}
+        isSending={isSendingMessage}
+        placeholder={
+          messages.length === 0
+            ? 'Or ask anything else...'
+            : 'Ask a question...'
+        }
+      />
     </KeyboardAvoidingView>
+  );
+};
+
+const suggestedPrompts = [
+  'Explain this in plain English',
+  'Suggest a fun activity',
+  'How can I best help?',
+];
+
+const SuggestedPrompts: React.FC<{
+  onPromptPress: (prompt: string) => void;
+}> = ({ onPromptPress }) => {
+  const isWeb = Platform.OS === 'web';
+
+  const renderChips = () => {
+    return suggestedPrompts.map((prompt) => (
+      <Pressable
+        key={prompt}
+        style={isWeb ? styles.promptChipWeb : styles.promptChip}
+        onPress={() => onPromptPress(prompt)}
+      >
+        <Text style={styles.promptChipText}>{prompt}</Text>
+      </Pressable>
+    ));
+  };
+
+  return (
+    <View style={styles.promptsContainer}>
+      <Text style={styles.promptsTitle}>Not sure where to start?</Text>
+      {isWeb ? (
+        <View style={styles.promptsWebContainer}>{renderChips()}</View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.promptsScrollView}
+        >
+          {renderChips()}
+        </ScrollView>
+      )}
+    </View>
   );
 };
 
@@ -598,6 +669,49 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  promptsContainer: {
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  promptsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  promptsScrollView: {
+    paddingHorizontal: 16,
+  },
+  promptsWebContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginHorizontal: 'auto',
+  },
+  promptChip: {
+    backgroundColor: colors.background.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: colors.background.tertiary,
+  },
+  promptChipWeb: {
+    backgroundColor: colors.background.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    margin: 8,
+    borderWidth: 1,
+    borderColor: colors.background.tertiary,
+  },
+  promptChipText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
