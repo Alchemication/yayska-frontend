@@ -28,6 +28,7 @@ import {
   ChildrenDropdown,
 } from '../src/components/Navigation';
 import { trackEvent } from '../src/utils/analytics';
+import { getSubjectColor } from '../src/utils/subjects/subjectColors';
 
 // Let's first check what props the LearningGoalCard expects
 interface ConceptCardProps {
@@ -203,10 +204,25 @@ export default function ExploreScreen() {
             </View>
           ) : (
             <>
-              <Text style={styles.header}>Subjects</Text>
+              <View style={styles.headerContainer}>
+                <Text style={styles.headerTitle}>Explore the Curriculum</Text>
+                <Text style={styles.headerSubtitle}>
+                  Select a subject to see the key concepts your child will be
+                  learning this year.
+                </Text>
+              </View>
               <View style={styles.content}>
                 {subjects.map((subject) => (
-                  <View key={subject.id} style={styles.subjectSection}>
+                  <View
+                    key={subject.id}
+                    style={[
+                      styles.subjectSection,
+                      {
+                        borderLeftColor: getSubjectColor(subject.name),
+                        borderLeftWidth: 4,
+                      },
+                    ]}
+                  >
                     <Pressable
                       style={styles.subjectHeader}
                       onPress={() => toggleSubjectExpansion(subject.id)}
@@ -270,8 +286,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
-    paddingBottom: 80,
+    paddingHorizontal: 16,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -284,16 +300,18 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 16,
   },
-  header: {
-    marginBottom: 20,
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 8,
   },
-  title: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 16,
     color: colors.text.secondary,
     lineHeight: 22,
@@ -301,9 +319,8 @@ const styles = StyleSheet.create({
   subjectSection: {
     marginBottom: 16,
     backgroundColor: colors.background.secondary,
-    borderRadius: commonStyles.borderRadius.medium,
+    borderRadius: 12,
     overflow: 'hidden',
-    ...commonStyles.shadow,
   },
   subjectHeader: {
     flexDirection: 'row',

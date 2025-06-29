@@ -5,30 +5,30 @@
 // Comprehensive mapping of all subjects to colors
 export const subjectColors: Record<string, string> = {
   // Language subjects
-  English: '#4285f4', // Google Blue
-  Gaeilge: '#34a853', // Google Green
-  Language: '#4285f4', // For backward compatibility
-  Reading: '#4285f4', // For backward compatibility
+  English: '#5A7D9A', // Slate Blue
+  Gaeilge: '#34a853', // Unchanged - Core brand color
+  Language: '#5A7D9A', // For backward compatibility
+  Reading: '#5A7D9A', // For backward compatibility
 
   // STEM subjects
-  Mathematics: '#9c27b0', // Purple
-  Math: '#9c27b0', // For backward compatibility
-  Science: '#00acc1', // Teal
+  Mathematics: '#8E7C93', // Heather
+  Math: '#8E7C93', // For backward compatibility
+  Science: '#2E8B57', // Sea Green
 
   // Humanities
-  History: '#f4b400', // Google Yellow
-  Geography: '#0f9d58', // Emerald Green
-  'Social Studies': '#f4b400', // For backward compatibility
-  'Social, Personal and Health Education': '#ff5722', // Deep Orange
+  History: '#EAA221', // Marigold
+  Geography: '#6A8D73', // Lichen Green
+  'Social Studies': '#EAA221', // For backward compatibility
+  'Social, Personal and Health Education': '#F09A7A', // Soft Coral
 
   // Arts subjects
-  'Visual Arts': '#ea4335', // Google Red
-  Arts: '#ea4335', // For backward compatibility
-  Music: '#9575cd', // Light Purple
-  Drama: '#e91e63', // Pink
+  'Visual Arts': '#C34423', // Burnt Sienna
+  Arts: '#C34423', // For backward compatibility
+  Music: '#B5A2C8', // Dusty Lavender
+  Drama: '#D8A0A6', // Rose Dust
 
   // Physical subjects
-  'Physical Education': '#2196f3', // Light Blue
+  'Physical Education': '#4682B4', // Steel Blue
 };
 
 /**
