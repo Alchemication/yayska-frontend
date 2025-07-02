@@ -22,6 +22,8 @@ export interface MonthlyConceptData {
   concept_description: string;
   subject_id: number;
   subject_name: string;
+  is_viewed?: boolean;
+  has_chatted?: boolean;
 }
 
 export interface Month {
@@ -206,25 +208,43 @@ export const MonthlyConceptsCarousel: React.FC<
   };
 
   const ConceptItem = ({ concept }: { concept: MonthlyConceptData }) => {
-    // Get subject color using centralized utility
     const subjectColor = getSubjectColor(concept.subject_name);
+
+    // TODO: Replace with actual data. Using random for now.
+    const is_viewed = Math.random() > 0.5;
+    const has_chatted = Math.random() > 0.3;
 
     return (
       <Pressable
         style={styles.conceptItem}
         onPress={() => navigateToConcept(concept.id)}
       >
-        {/* Color indicator for subject */}
         <View
           style={[styles.subjectIndicator, { backgroundColor: subjectColor }]}
         />
-
-        {/* Content area */}
         <View style={styles.conceptContent}>
           <Text style={styles.conceptName} numberOfLines={2}>
             {concept.concept_name}
           </Text>
-          <Text style={styles.subjectName}>{concept.subject_name}</Text>
+          <View style={styles.subjectRow}>
+            {is_viewed && (
+              <Ionicons
+                name="eye-outline"
+                size={14}
+                color={colors.text.secondary}
+                style={styles.engagementIcon}
+              />
+            )}
+            {has_chatted && (
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={14}
+                color={colors.text.secondary}
+                style={styles.engagementIcon}
+              />
+            )}
+            <Text style={styles.subjectName}>{concept.subject_name}</Text>
+          </View>
         </View>
       </Pressable>
     );
@@ -267,7 +287,9 @@ export const MonthlyConceptsCarousel: React.FC<
             {!month.month_name.includes('Review') &&
               month.important_concepts.length > 0 && (
                 <>
-                  <Text style={styles.sectionTitle}>Important Concepts</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 16 }]}>
+                    Important Concepts
+                  </Text>
                   {importantConceptsToShow.map((concept) => (
                     <ConceptItem key={concept.id} concept={concept} />
                   ))}
@@ -392,7 +414,8 @@ const styles = StyleSheet.create({
   monthCard: {
     backgroundColor: colors.background.secondary,
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -427,7 +450,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.tertiary,
     borderRadius: 8,
     marginBottom: 6,
-    minHeight: 62,
     flexDirection: 'row',
     overflow: 'hidden',
   },
@@ -437,25 +459,28 @@ const styles = StyleSheet.create({
   },
   conceptContent: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     padding: 10,
   },
   conceptName: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
     color: colors.text.primary,
-    marginBottom: 3,
+    marginBottom: 4,
+  },
+  subjectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 0,
+  },
+  engagementIcon: {
+    marginRight: 6,
   },
   subjectName: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.text.secondary,
-    fontWeight: '500',
+    flexShrink: 1, // Prevent subject name from pushing out other elements
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  conceptDescription: {
-    fontSize: 14,
-    color: colors.text.secondary,
   },
   viewMoreButton: {
     alignSelf: 'center',
@@ -468,9 +493,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   viewMoreText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.primary.green,
-    fontWeight: '500',
-    fontSize: 14,
   },
   navButton: {
     position: 'absolute',
@@ -509,34 +534,36 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   loadingContainer: {
-    padding: 32,
+    height: 300,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 10,
+    fontSize: 16,
     color: colors.text.secondary,
-    fontSize: 14,
   },
   errorContainer: {
-    padding: 32,
+    height: 300,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   errorText: {
-    marginBottom: 16,
-    color: colors.text.secondary,
     fontSize: 16,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   exploreButton: {
     backgroundColor: colors.primary.green,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
   },
   exploreButtonText: {
-    color: 'white',
-    fontWeight: '600',
+    color: '#fff',
     fontSize: 16,
-    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });

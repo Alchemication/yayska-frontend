@@ -222,6 +222,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     styles.selectedChildMenuItem,
                 ]}
                 onPress={() => selectChild(child)}
+                disabled={selectedChild?.id === child.id}
               >
                 <ChildAvatar
                   child={child}
