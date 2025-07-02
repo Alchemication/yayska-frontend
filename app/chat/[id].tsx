@@ -13,25 +13,10 @@ import { chatApi } from '../../src/services/chatApi';
 import { ChatMessageResponse, ChatMessageRole } from '../../src/types/chat';
 import { colors } from '../../src/theme/colors';
 import { trackEvent } from '../../src/utils/analytics';
-import { AppHeader } from '../../src/components/Navigation/AppHeader';
+import { AppHeader, PageHeader } from '../../src/components/Navigation';
 import { UserProfile } from '../../src/components/Auth/UserProfile';
 import { crossPlatformAlert } from '../../src/utils/crossPlatformAlert';
 import { useAppHeader } from '../../src/hooks/useAppHeader';
-
-const ConceptHeader = ({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) => (
-  <View style={styles.conceptHeader}>
-    <Text style={styles.conceptTitle}>{title}</Text>
-    <Text style={styles.conceptDescription}>
-      Let's explore how to best help your child with this.
-    </Text>
-  </View>
-);
 
 export default function ChatScreen() {
   const { id, conceptName, conceptDescription } = useLocalSearchParams<{
@@ -222,13 +207,18 @@ export default function ChatScreen() {
           <Text style={styles.loadingText}>Loading chat...</Text>
         </View>
       ) : (
-        <ChatView
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          onFeedback={handleFeedback}
-          isSendingMessage={isSending}
-          conceptName={conceptName}
-        />
+        <>
+          {conceptName && (
+            <PageHeader title={conceptName} subtitle="Chat with Yay" />
+          )}
+          <ChatView
+            messages={messages}
+            onSendMessage={handleSendMessage}
+            onFeedback={handleFeedback}
+            isSendingMessage={isSending}
+            conceptName={conceptName}
+          />
+        </>
       )}
       {showUserProfile && (
         <View style={styles.profileOverlay}>
@@ -255,21 +245,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: colors.text.secondary,
-  },
-  conceptHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  conceptTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    marginBottom: 4,
-  },
-  conceptDescription: {
-    fontSize: 14,
     color: colors.text.secondary,
   },
   profileOverlay: {

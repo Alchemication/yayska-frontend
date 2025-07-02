@@ -336,62 +336,42 @@ export function ConceptDetailCard({
               )}
           </Animated.View>
         );
+      // Default case to handle unknown sections
+      default:
+        return null;
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Concept Title */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.conceptTitle}>{concept.concept_name}</Text>
-      </View>
-
-      {/* Concept Description Card - Always visible at the top */}
-      {concept.concept_description && (
-        <View style={styles.descriptionContainer}>
-          <View style={styles.descriptionContent}>
-            <Text style={styles.descriptionLabel}>
-              WHAT YOUR CHILD WILL LEARN:
-            </Text>
-            <Text style={styles.descriptionText}>
-              {concept.concept_description}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        {SECTIONS.map((section) => (
-          <Pressable
-            key={section.id}
-            style={[
-              styles.tabButton,
-              activeSection === section.id && styles.activeTabButton,
-            ]}
-            onPress={() => onSectionChange(section.id)}
-          >
-            <Text style={styles.tabIcon}>{section.icon}</Text>
-            <Text
+      <View style={styles.tabsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabs}
+        >
+          {SECTIONS.map((section) => (
+            <Pressable
+              key={section.id}
               style={[
-                styles.tabLabel,
-                activeSection === section.id && styles.activeTabLabel,
+                styles.tab,
+                activeSection === section.id && styles.activeTab,
               ]}
+              onPress={() => onSectionChange(section.id)}
             >
-              {section.title}
-            </Text>
-            {activeSection === section.id && (
-              <View
+              <Text style={styles.tabIcon}>{section.icon}</Text>
+              <Text
                 style={[
-                  styles.activeIndicator,
-                  { backgroundColor: section.color },
+                  styles.tabText,
+                  activeSection === section.id && styles.activeTabText,
                 ]}
-              />
-            )}
-          </Pressable>
-        ))}
+              >
+                {section.title}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
-
       {renderSectionContent()}
     </View>
   );
@@ -401,77 +381,58 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
-  titleContainer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    backgroundColor: colors.background.primary,
+  header: {
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.lightGrey,
+    marginBottom: 8,
   },
-  conceptTitle: {
-    fontSize: 22,
-    fontWeight: '600',
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
     color: colors.text.primary,
     textAlign: 'center',
-  },
-  descriptionContainer: {
-    backgroundColor: colors.primary.green + '10', // Very light green background
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.background.tertiary,
-  },
-  descriptionContent: {
-    flexDirection: 'column',
-  },
-  descriptionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary.green,
     marginBottom: 4,
   },
-  descriptionText: {
-    fontSize: 15,
-    fontWeight: '400',
-    color: colors.text.primary,
-    lineHeight: 22,
+  subject: {
+    fontSize: 16,
+    fontWeight: '500',
   },
-  tabContainer: {
+  tabsContainer: {
     flexDirection: 'row',
     backgroundColor: colors.background.secondary,
     borderBottomWidth: 1,
     borderBottomColor: colors.background.tertiary,
   },
-  tabButton: {
+  tabs: {
+    flexDirection: 'row',
+  },
+  tab: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 8,
     position: 'relative',
   },
-  activeTabButton: {
+  activeTab: {
     backgroundColor: colors.background.tertiary,
   },
   tabIcon: {
     fontSize: 22,
     marginBottom: 4,
   },
-  tabLabel: {
+  tabText: {
     fontSize: 12,
     color: colors.text.secondary,
     textAlign: 'center',
     fontWeight: '500',
   },
-  activeTabLabel: {
+  activeTabText: {
     color: colors.text.primary,
     fontWeight: '600',
-  },
-  activeIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 3,
   },
   sectionContent: {
     padding: 16,

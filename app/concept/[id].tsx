@@ -16,7 +16,7 @@ import { ConceptDetailCard } from '../../src/components/Concept/ConceptDetailCar
 import { colors } from '../../src/theme/colors';
 import { api } from '../../src/services/api';
 import { ConceptMetadata } from '../../src/types/concept';
-import { AppHeader } from '../../src/components/Navigation/AppHeader';
+import { AppHeader, PageHeader } from '../../src/components/Navigation';
 import { UserProfile } from '../../src/components/Auth/UserProfile';
 import { trackEvent } from '../../src/utils/analytics';
 import { chatApi } from '../../src/services/chatApi';
@@ -220,6 +220,7 @@ export default function ConceptDetailScreen() {
         toggleUserProfile={toggleUserProfile}
         showBackButton={true}
       />
+      <PageHeader title={concept.concept_name} />
 
       <ScrollView style={styles.container}>
         <ConceptDetailCard
@@ -233,7 +234,10 @@ export default function ConceptDetailScreen() {
         {isChatLoading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Ionicons name="chatbubbles-outline" size={28} color="#fff" />
+          <>
+            <Ionicons name="chatbubbles-outline" size={24} color="#fff" />
+            <Text style={styles.fabText}>Chat with Yay</Text>
+          </>
         )}
       </Pressable>
 
@@ -253,6 +257,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.lightGrey,
+    backgroundColor: colors.background.secondary,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text.primary,
   },
   centeredContainer: {
     flex: 1,
@@ -286,9 +302,11 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 20,
     backgroundColor: colors.primary.green,
-    width: 60,
+    width: 'auto',
     height: 60,
+    paddingHorizontal: 20,
     borderRadius: 30,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -305,6 +323,12 @@ const styles = StyleSheet.create({
         elevation: 5,
       },
     }),
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   profileOverlay: {
     ...StyleSheet.absoluteFillObject,
