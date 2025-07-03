@@ -346,7 +346,7 @@ export const MonthlyConceptsCarousel: React.FC<
     const showIconLegend = () => {
       crossPlatformAlert(
         'Engagement Icons',
-        '📖 -> Indicates you have read a concept for at least 15 seconds.\n\n💬 -> Indicates you have discussed a concept with Yay.'
+        '📖: Indicates you have read a concept for at least 15 seconds.\n\n💬: Indicates you have discussed a concept with Yayska.'
       );
     };
 
@@ -367,7 +367,7 @@ export const MonthlyConceptsCarousel: React.FC<
 
           <View style={styles.conceptsSection}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Essential Concepts</Text>
+              <Text style={styles.sectionTitle}>Key Concepts</Text>
               <SectionProgressIndicator
                 studied={essentialProgress.studied}
                 discussed={essentialProgress.discussed}
@@ -391,7 +391,7 @@ export const MonthlyConceptsCarousel: React.FC<
               month.important_concepts.length > 0 && (
                 <>
                   <View style={[styles.sectionHeaderRow, { marginTop: 16 }]}>
-                    <Text style={styles.sectionTitle}>Important Concepts</Text>
+                    <Text style={styles.sectionTitle}>Next Steps</Text>
                     <SectionProgressIndicator
                       studied={importantProgress.studied}
                       discussed={importantProgress.discussed}
@@ -624,18 +624,21 @@ const styles = StyleSheet.create({
   },
   navButton: {
     position: 'absolute',
-    top: '50%',
+    top: '40%',
     zIndex: 10,
-    marginTop: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Add semi-transparent background
-    borderRadius: 20,
-    padding: 6,
+    marginTop: -22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 22,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   navButtonLeft: {
     left: 0,
   },
   navButtonRight: {
-    right: 0,
+    right: -12, // Move slightly off-card
   },
   pagination: {
     flexDirection: 'row',
