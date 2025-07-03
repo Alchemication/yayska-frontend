@@ -17,13 +17,19 @@ import { AppHeader, PageHeader } from '../../src/components/Navigation';
 import { UserProfile } from '../../src/components/Auth/UserProfile';
 import { crossPlatformAlert } from '../../src/utils/crossPlatformAlert';
 import { useAppHeader } from '../../src/hooks/useAppHeader';
+import {
+  userInteractionsApi,
+  InteractionType as UserInteractionType,
+} from '../../src/services/userInteractionsApi';
 
 export default function ChatScreen() {
-  const { id, conceptName, conceptDescription } = useLocalSearchParams<{
-    id: string;
-    conceptName?: string;
-    conceptDescription?: string;
-  }>();
+  const { id, conceptName, conceptDescription, conceptId } =
+    useLocalSearchParams<{
+      id: string;
+      conceptName?: string;
+      conceptDescription?: string;
+      conceptId?: string;
+    }>();
   const {
     children,
     selectedChild,
@@ -85,6 +91,15 @@ export default function ChatScreen() {
   ) => {
     if (!id || isSending) return;
 
+    const source = metadata?.source || 'user_typed';
+
+    if (source === 'user_typed') {
+      userInteractionsApi.logInteraction(UserInteractionType.AI_CHAT_ENGAGED, {
+        session_id: id,
+        concept_id: conceptId ? Number(conceptId) : undefined,
+      });
+    }
+
     const userMessage: ChatMessageResponse = {
       id: `user-${Date.now()}`,
       session_id: id,
@@ -108,7 +123,7 @@ export default function ChatScreen() {
       await trackEvent('CHAT_MESSAGE_SENT', {
         session_id: id,
         message_length: text.length,
-        source: metadata?.source || 'user_typed',
+        source: source,
         prompt_text: metadata?.prompt_text,
       });
 

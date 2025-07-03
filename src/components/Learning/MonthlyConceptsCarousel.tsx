@@ -14,6 +14,7 @@ import { colors } from '../../theme/colors';
 import { router } from 'expo-router';
 import { getSubjectColor } from '../../utils/subjects/subjectColors';
 import { trackEvent } from '../../utils/analytics';
+import { crossPlatformAlert } from '../../utils/crossPlatformAlert';
 
 // Types
 export interface MonthlyConceptData {
@@ -22,8 +23,8 @@ export interface MonthlyConceptData {
   concept_description: string;
   subject_id: number;
   subject_name: string;
-  is_viewed?: boolean;
-  has_chatted?: boolean;
+  previously_studied?: boolean;
+  previously_discussed?: boolean;
 }
 
 export interface Month {
@@ -55,6 +56,65 @@ interface MonthlyConceptsCarouselProps {
 const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = screenWidth * 0.75; // 75% of screen width for more peek
 const CARD_SPACING = 12; // Space between cards
+
+// A component to show section progress with icons
+const SectionProgressIndicator = ({
+  studied,
+  discussed,
+  total,
+  onInfoPress,
+}: {
+  studied: number;
+  discussed: number;
+  total: number;
+  onInfoPress: () => void;
+}) => {
+  return (
+    <View style={styles.progressContainer}>
+      <Ionicons
+        name="book"
+        size={14}
+        color={studied > 0 ? colors.accent.success : colors.text.tertiary}
+        style={styles.progressIcon}
+      />
+      <Text
+        style={[
+          styles.progressText,
+          { color: studied > 0 ? colors.accent.success : colors.text.tertiary },
+        ]}
+      >
+        {studied}
+      </Text>
+
+      <Ionicons
+        name="chatbubble"
+        size={14}
+        color={discussed > 0 ? colors.primary.orange : colors.text.tertiary}
+        style={styles.progressIcon}
+      />
+      <Text
+        style={[
+          styles.progressText,
+          {
+            color: discussed > 0 ? colors.primary.orange : colors.text.tertiary,
+          },
+        ]}
+      >
+        {discussed}
+      </Text>
+
+      <Text style={styles.totalText}>/ {total}</Text>
+
+      <Pressable onPress={onInfoPress} style={styles.infoIcon}>
+        <Ionicons
+          name="information-circle-outline"
+          size={20}
+          color={colors.text.tertiary}
+        />
+      </Pressable>
+    </View>
+  );
+};
 
 export const MonthlyConceptsCarousel: React.FC<
   MonthlyConceptsCarouselProps
@@ -210,9 +270,9 @@ export const MonthlyConceptsCarousel: React.FC<
   const ConceptItem = ({ concept }: { concept: MonthlyConceptData }) => {
     const subjectColor = getSubjectColor(concept.subject_name);
 
-    // TODO: Replace with actual data. Using random for now.
-    const is_viewed = Math.random() > 0.5;
-    const has_chatted = Math.random() > 0.3;
+    // Determine engagement state for styling
+    const isDiscussed = concept.previously_discussed;
+    const isStudied = concept.previously_studied;
 
     return (
       <Pressable
@@ -226,24 +286,38 @@ export const MonthlyConceptsCarousel: React.FC<
           <Text style={styles.conceptName} numberOfLines={2}>
             {concept.concept_name}
           </Text>
-          <View style={styles.subjectRow}>
-            {is_viewed && (
-              <Ionicons
-                name="eye-outline"
-                size={14}
-                color={colors.text.secondary}
-                style={styles.engagementIcon}
-              />
-            )}
-            {has_chatted && (
-              <Ionicons
-                name="chatbubble-ellipses-outline"
-                size={14}
-                color={colors.text.secondary}
-                style={styles.engagementIcon}
-              />
-            )}
+          <View style={styles.conceptFooter}>
             <Text style={styles.subjectName}>{concept.subject_name}</Text>
+            <View style={styles.badgeContainer}>
+              <View
+                style={[
+                  styles.iconWrapper,
+                  isStudied && styles.studiedIconWrapper,
+                ]}
+              >
+                <Ionicons
+                  name={isStudied ? 'book' : 'book-outline'}
+                  size={12}
+                  color={
+                    isStudied ? colors.neutral.white : colors.text.tertiary
+                  }
+                />
+              </View>
+              <View
+                style={[
+                  styles.iconWrapper,
+                  isDiscussed && styles.discussedIconWrapper,
+                ]}
+              >
+                <Ionicons
+                  name={isDiscussed ? 'chatbubble' : 'chatbubble-outline'}
+                  size={12}
+                  color={
+                    isDiscussed ? colors.neutral.white : colors.text.tertiary
+                  }
+                />
+              </View>
+            </View>
           </View>
         </View>
       </Pressable>
@@ -254,6 +328,27 @@ export const MonthlyConceptsCarousel: React.FC<
     // Limit the number of essential and important concepts shown to prevent overcrowding
     const essentialConceptsToShow = month.essential_concepts.slice(0, 5);
     const importantConceptsToShow = month.important_concepts.slice(0, 3);
+
+    // Calculate progress statistics (non-hierarchical)
+    const calculateProgress = (concepts: MonthlyConceptData[]) => {
+      const studied = concepts.filter((c) => c.previously_studied).length;
+      const discussed = concepts.filter((c) => c.previously_discussed).length;
+      const total = concepts.length;
+
+      return { discussed, studied, total };
+    };
+
+    const essentialProgress = calculateProgress(month.essential_concepts);
+    const importantProgress = calculateProgress(
+      month.important_concepts.slice(0, 3)
+    );
+
+    const showIconLegend = () => {
+      crossPlatformAlert(
+        'Engagement Icons',
+        '📖: Indicates you have read a concept for at least 15 seconds.\n\n💬: Indicates you have discussed a concept with Yayska.'
+      );
+    };
 
     return (
       <View
@@ -271,7 +366,15 @@ export const MonthlyConceptsCarousel: React.FC<
           <Text style={styles.focusStatement}>{month.focus_statement}</Text>
 
           <View style={styles.conceptsSection}>
-            <Text style={styles.sectionTitle}>Essential Concepts</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Essential Concepts</Text>
+              <SectionProgressIndicator
+                studied={essentialProgress.studied}
+                discussed={essentialProgress.discussed}
+                total={essentialProgress.total}
+                onInfoPress={showIconLegend}
+              />
+            </View>
             {essentialConceptsToShow.map((concept) => (
               <ConceptItem key={concept.id} concept={concept} />
             ))}
@@ -287,9 +390,15 @@ export const MonthlyConceptsCarousel: React.FC<
             {!month.month_name.includes('Review') &&
               month.important_concepts.length > 0 && (
                 <>
-                  <Text style={[styles.sectionTitle, { marginTop: 16 }]}>
-                    Important Concepts
-                  </Text>
+                  <View style={[styles.sectionHeaderRow, { marginTop: 16 }]}>
+                    <Text style={styles.sectionTitle}>Important Concepts</Text>
+                    <SectionProgressIndicator
+                      studied={importantProgress.studied}
+                      discussed={importantProgress.discussed}
+                      total={importantProgress.total}
+                      onInfoPress={showIconLegend}
+                    />
+                  </View>
                   {importantConceptsToShow.map((concept) => (
                     <ConceptItem key={concept.id} concept={concept} />
                   ))}
@@ -447,15 +556,16 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
   conceptItem: {
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: colors.background.primary,
     borderRadius: 8,
     marginBottom: 6,
     flexDirection: 'row',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.background.tertiary,
   },
   subjectIndicator: {
-    width: 4,
-    backgroundColor: colors.primary.green,
+    width: 5,
   },
   conceptContent: {
     flex: 1,
@@ -466,15 +576,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  subjectRow: {
+  conceptFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 0,
+    justifyContent: 'space-between',
   },
-  engagementIcon: {
-    marginRight: 6,
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconWrapper: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  studiedIconWrapper: {
+    backgroundColor: colors.accent.success,
+  },
+  discussedIconWrapper: {
+    backgroundColor: colors.primary.orange,
   },
   subjectName: {
     fontSize: 12,
@@ -565,5 +690,47 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Ring styles
+  ringsContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  emptyRing: {
+    borderWidth: 2,
+    borderColor: colors.neutral.lightGrey,
+  },
+  outerRing: {
+    // No additional styles needed, all set inline
+  },
+  innerRing: {
+    // No additional styles needed, all set inline
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressIcon: {
+    marginRight: 2,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 10,
+  },
+  totalText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  infoIcon: {
+    marginLeft: 6,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
 });

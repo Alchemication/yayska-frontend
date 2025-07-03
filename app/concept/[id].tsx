@@ -24,6 +24,10 @@ import { EntryPointType } from '../../src/types/chat';
 import { Ionicons } from '@expo/vector-icons';
 import { crossPlatformAlert } from '../../src/utils/crossPlatformAlert';
 import { useAppHeader } from '../../src/hooks/useAppHeader';
+import {
+  userInteractionsApi,
+  InteractionType as UserInteractionType,
+} from '../../src/services/userInteractionsApi';
 
 export default function ConceptDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -93,6 +97,26 @@ export default function ConceptDetailScreen() {
     loadConcept();
   }, [id]);
 
+  useEffect(() => {
+    if (concept) {
+      const timer = setTimeout(() => {
+        trackEvent('CONCEPT_STUDIED_15_SEC', {
+          concept_id: concept.concept_id,
+          concept_name: concept.concept_name,
+        });
+
+        userInteractionsApi.logInteraction(
+          UserInteractionType.CONCEPT_STUDIED,
+          {
+            concept_id: concept.concept_id,
+          }
+        );
+      }, 15000); // 15 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [concept]);
+
   const handleOpenChat = async () => {
     if (!concept || !selectedChild) {
       crossPlatformAlert('Error', 'Please select a child first.');
@@ -124,6 +148,7 @@ export default function ConceptDetailScreen() {
         params: {
           conceptName: concept.concept_name,
           conceptDescription: concept.concept_description,
+          conceptId: concept.concept_id.toString(),
         },
       });
     } catch (error: any) {
