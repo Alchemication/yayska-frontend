@@ -346,7 +346,7 @@ export const MonthlyConceptsCarousel: React.FC<
     const showIconLegend = () => {
       crossPlatformAlert(
         'Engagement Icons',
-        '📖: Indicates you have read a concept for at least 15 seconds.\n\n💬: Indicates you have discussed a concept with Yayska.'
+        '📖 -> Indicates you have read a concept for at least 15 seconds.\n\n💬 -> Indicates you have discussed a concept with Yay.'
       );
     };
 
