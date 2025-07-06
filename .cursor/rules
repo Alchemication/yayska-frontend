@@ -1,0 +1,80 @@
+# General
+
+- This is the yayska-frontend project, a mobile and web application for parents to support their children's learning in primary school mathematics.
+- The frontend is built with React Native and Expo, using TypeScript.
+- It supports both web and mobile platforms.
+
+# Package Management
+
+- Use `npm` for all JavaScript package management.
+- To add a new dependency, run `npm install <package>`.
+- All dependencies are tracked in `package.json` and `package-lock.json`.
+
+# Coding Standards
+
+- Follow the existing coding style, which includes using TypeScript for type safety.
+- Use Prettier and ESLint for code formatting and linting.
+- Define clear and specific types for props, state, and API payloads in `src/types/`.
+
+# Screen and Component Creation Workflow
+
+1.  **New Screen**: To create a new screen/route, add a new file inside the `app/` directory. Expo Router handles the routing based on the file system.
+2.  **Layouts**: Define shared UI for a directory of screens in a `_layout.tsx` file.
+3.  **Reusable Components**: Create reusable components inside `src/components/` in a relevant sub-directory.
+4.  **Styling**: Use React Native's StyleSheet for styling components to ensure cross-platform compatibility. Keep styles with the component or in a separate file if complex.
+5.  **Types**: Define all custom types in the `src/types` directory in relevant files (e.g., `child.ts`, `concept.ts`).
+
+# Service Layer & API Communication
+
+- All external API communication should be handled within the `src/services/` directory.
+- Use the `fetch` API for making network requests.
+- Base API configuration is located in `src/services/api.ts`.
+- Create separate service files for different API resources (e.g., `authApi.ts`, `chatApi.ts`).
+- Define request and response types in `src/types/`.
+
+# State Management & Data Persistence
+
+- **Global State**: Use React Context API for managing global state. For example, `AuthContext` in `src/context/AuthContext.tsx`.
+- **Local State**: Use `useState` and `useReducer` for component-level state.
+- **Custom Hooks**: Encapsulate complex or reusable stateful logic in custom hooks within the `src/hooks/` directory.
+- **Local Storage**: Use the abstractions in `src/utils/storage.ts` to interact with AsyncStorage for persistent data storage.
+
+# Navigation
+
+- Navigation is handled by Expo Router.
+- To add a new route, create a file in the `app/` directory.
+- For dynamic routes, use bracket syntax (e.g., `app/concept/[id].tsx`).
+- Use the `<Link>` component from Expo Router for navigation between screens.
+
+# Analytics
+
+- Use the `trackEvent` function from `src/utils/analytics.ts` for tracking user interactions.
+- Events are sent to the backend to understand user journeys.
+- Ensure that no personally identifiable information is included in analytics events.
+
+# Theme & Styling
+
+- **Irish Color Scheme**: The app follows a specific Irish-inspired color palette defined in `src/theme/colors.ts`.
+- **Color Usage**: Always use colors from the theme object rather than hardcoded hex values (e.g., `colors.primary.green` instead of `#267255`).
+- **Primary Colors**: Green (`#267255`) and orange (`#FF8C37`) are the main brand colors inspired by the Irish flag.
+- **Consistency**: Import colors from `src/theme/colors.ts` in components that need styling.
+- **Common Styles**: Use predefined shadow and border radius values from `commonStyles` in the theme file.
+
+# User Experience (UX) Principles
+
+- **Target Audience**: Design for busy Irish parents who need quick, intuitive access to educational content.
+- **Accessibility First**: Ensure all interactive elements have proper touch targets (minimum 44px), clear visual hierarchy, and readable text sizes.
+- **Loading States**: Always provide loading indicators for API calls and data fetching to keep users informed.
+- **Error Handling**: Implement user-friendly error messages with clear next steps. Use `src/utils/crossPlatformAlert.ts` for consistent alerts.
+- **Navigation Clarity**: Keep navigation simple and predictable. Use clear labels and familiar patterns.
+- **Content Scannability**: Structure content with clear headings, bullet points, and visual breaks for quick scanning.
+- **Irish Context**: Use Irish terminology, examples, and cultural references that resonate with local parents.
+- **Mobile-First**: Prioritize mobile experience since parents often use phones during busy moments.
+- **Minimal Cognitive Load**: Reduce decision fatigue by presenting information in digestible chunks and using progressive disclosure.
+- **Feedback & Confirmation**: Provide immediate feedback for user actions (button presses, form submissions, etc.).
+
+# Cursor-Specific Rules
+
+- Only add or modify code directly related to the assigned task. Do not refactor or alter unrelated code sections.
+- Do not praise my statements, but rather criticise if you observe glaring issues or areas to improve significantly.
+- Do not add comments simply stating what has been changed (e.g. # changed this line)
