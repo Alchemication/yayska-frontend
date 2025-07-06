@@ -8,7 +8,14 @@ export { Child } from '../types/child';
 // Simple API-based functions (no local storage)
 export async function getChildren(): Promise<Child[]> {
   try {
-    return await api.children.getAll();
+    console.log('[storage.ts] Calling API: /children endpoint');
+    const children = await api.children.getAll();
+    console.log(
+      '[storage.ts] Successfully loaded',
+      children.length,
+      'children'
+    );
+    return children;
   } catch (error) {
     console.error('Error getting children:', error);
     return [];

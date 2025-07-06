@@ -65,6 +65,12 @@ export interface ConceptInPath {
   complexity: Complexity;
   learning_objectives: string[];
   display_order: number;
+  // Progress tracking flags
+  previously_studied?: boolean;
+  previously_discussed?: boolean;
+  // Subject information for consistent display
+  subject_name: string;
+  subject_id: number;
 }
 
 export interface SubjectLearningPath {

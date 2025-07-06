@@ -124,7 +124,7 @@ export const api = {
     yearId: number
   ): Promise<SubjectLearningPath[]> => {
     const response = await fetchAPI<LearningPathsResponse>(
-      `/curriculum/subjects/${yearId}/learning_paths`
+      `/curriculum/subjects/${yearId}/learning-paths`
     );
     return response.subjects;
   },
