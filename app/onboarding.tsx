@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { ChildInput } from '../src/components/Onboarding/ChildInput';
 import { YearSelector } from '../src/components/Onboarding/YearSelector';
 import { colors, commonStyles } from '../src/theme/colors';
@@ -23,6 +24,8 @@ import {
   getSchoolYearsByLevelId,
 } from '../src/constants/education';
 import { useAuth } from '../src/context/AuthContext';
+import { UserProfile } from '../src/components/Auth/UserProfile';
+import { ProfileAvatar } from '../src/components/Auth/ProfileAvatar';
 import { trackEvent } from '../src/utils/analytics';
 
 // Use a local type for the state that can have null values during input
@@ -48,6 +51,7 @@ export default function OnboardingScreen() {
   ]);
 
   const [loading, setLoading] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
   // Track onboarding start
   useEffect(() => {
@@ -193,13 +197,23 @@ export default function OnboardingScreen() {
           </View>
         ) : (
           <View style={styles.headerContainer}>
-            <View style={styles.headerLeft}>
-              <View style={styles.placeholderButton} />
-              <Image
-                source={require('../assets/images/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
+            <View style={styles.headerTop}>
+              <View style={styles.headerLeft}>
+                <View style={styles.placeholderButton} />
+                <Image
+                  source={require('../assets/images/logo.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
+              {isAuthenticated && (
+                <Pressable
+                  style={styles.profileButton}
+                  onPress={() => setShowUserProfile(true)}
+                >
+                  <ProfileAvatar size={24} />
+                </Pressable>
+              )}
             </View>
             <Text style={styles.headerSubtitle}>
               Tell us who you'll be helping with their schoolwork.
@@ -263,6 +277,14 @@ export default function OnboardingScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      {showUserProfile && (
+        <View style={styles.profileOverlay}>
+          <UserProfile
+            isVisible={showUserProfile}
+            onClose={() => setShowUserProfile(false)}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -287,10 +309,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+  },
+  profileButton: {
+    padding: 2,
   },
   placeholderButton: {
     width: 0,
@@ -298,7 +328,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 130,
     height: 34,
-    marginLeft: 0,
+    marginLeft: 2,
   },
   headerSubtitle: {
     fontSize: 15,
@@ -394,5 +424,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginLeft: 8,
+  },
+  profileOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
 });

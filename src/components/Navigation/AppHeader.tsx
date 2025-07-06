@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,6 +13,7 @@ import { colors, commonStyles } from '../../theme/colors';
 import { Child } from '../../types/child';
 import { getChildDisplayName } from '../../utils/childDisplayUtils';
 import { useAuth } from '../../context/AuthContext';
+import { ProfileAvatar } from '../Auth/ProfileAvatar';
 
 interface AppHeaderProps {
   children: Child[] | null;
@@ -181,13 +182,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           )}
 
           <Pressable style={styles.profileButton} onPress={toggleUserProfile}>
-            <Ionicons
-              name={isAuthenticated ? 'person-circle' : 'person-circle-outline'}
-              size={24}
-              color={
-                isAuthenticated ? colors.primary.green : colors.text.secondary
-              }
-            />
+            <ProfileAvatar size={24} />
           </Pressable>
         </View>
       </View>
@@ -294,11 +289,11 @@ const styles = StyleSheet.create({
   headerLogo: {
     width: 130,
     height: 34,
-    marginLeft: 0,
+    marginLeft: 2,
   },
   headerLogoWithBack: {
     width: 110,
-    marginLeft: 4,
+    marginLeft: 2,
   },
   backButton: {
     padding: 4,

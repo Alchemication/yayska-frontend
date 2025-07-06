@@ -356,6 +356,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   // Progress indicator styles
   progressContainer: {

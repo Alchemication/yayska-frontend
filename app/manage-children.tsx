@@ -758,10 +758,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   profileOverlay: {
-    position: 'absolute',
-    top: 60,
-    right: 16,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   emptyState: {
     flex: 1,
