@@ -269,7 +269,7 @@ We welcome contributions! Please see our contributing guidelines for more detail
 
 MIT License
 
-Copyright (c) 2024 Yayska
+Copyright (c) 2025 Yayska
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
