@@ -4,7 +4,54 @@ Know more. Help better.
 
 ## About Yayska
 
-Yayska is a mobile and web application designed to help parents support their children's learning journey in primary school mathematics. Built with Irish curriculum in mind, it provides parents with clear, practical insights into mathematical concepts their children are learning.
+Yayska is a mobile and web application designed to help parents support their children's learning journey in primary school subjects. Built with Irish curriculum in mind, it provides parents with clear, practical insights into concepts their children are learning.
+
+## How to Use Yayska
+
+Yayska is designed to guide you through your child's learning journey with a structured approach:
+
+### 1. 📅 Monthly Learning Overview
+
+- **Home Screen**: View the monthly curriculum carousel showing what your child should focus on
+- **Key Concepts**: Essential concepts for the current month that form the foundation
+- **Next Steps**: Important concepts that build on the key concepts and prepare for future learning
+- **Progress Tracking**: See at a glance which concepts have been studied (📖) and discussed (💬)
+
+### 2. 🔍 Explore All Subjects
+
+- **Subject Overview**: Browse all subjects your child will learn this year
+- **Comprehensive View**: See every concept organized by subject with expandable sections
+- **Progress Monitoring**: Track your engagement across all subjects and concepts
+
+### 3. 📚 Deep Dive into Concepts
+
+For each concept, you can:
+
+- **Study the Details**: Access comprehensive information about why it's important, difficulty level, and practical applications
+- **Get Parent Guidance**: Find key points, quick tips, and assessment approaches
+- **Understand Real-World Context**: See Irish-specific examples and practice ideas
+- **Track Time Investment**: Get realistic expectations for learning pace
+
+### 4. 💬 Chat with Yay
+
+- **AI-Powered Support**: Ask questions about any concept to get personalized explanations
+- **Contextual Help**: Get specific guidance tailored to your child's learning level
+- **Practice Ideas**: Receive suggestions for activities and exercises
+- **Feedback Loop**: Rate responses to help improve the experience
+
+### 5. 📊 Progress Tracking
+
+Your engagement is automatically tracked:
+
+- **📖 Studied**: Concepts you've read for at least 15 seconds
+- **💬 Chatted**: Concepts you've discussed with Yay using your own questions (not just suggested prompts)
+
+This system helps you:
+
+- **Stay Organized**: Know what to focus on each month
+- **Build Confidence**: Understand concepts before helping your child
+- **Track Progress**: See your learning journey and identify areas for more attention
+- **Get Personalized Help**: Use AI chat for specific questions and scenarios
 
 ## Key Features
 
@@ -16,7 +63,7 @@ Yayska is a mobile and web application designed to help parents support their ch
 
 ## Concept Information
 
-For each mathematical concept, parents can access:
+For each concept, parents can access:
 
 - 🎯 **Why Important**
   - Practical value in daily life
@@ -110,10 +157,12 @@ The application uses:
    - Users register their children with school years
    - Data persists locally using AsyncStorage
 
-2. **Content Browsing**:
+2. **Learning Journey**:
 
-   - Fetches learning paths and concepts from the backend API
-   - Organized by subjects and educational levels
+   - Monthly curriculum overview guides focus areas
+   - Explore view provides comprehensive subject access
+   - Concept details offer in-depth understanding
+   - AI chat provides personalized support
 
 3. **Child Management**:
    - Switch between multiple children profiles
@@ -123,7 +172,7 @@ The application uses:
 
 Currently in MVP phase, focusing on:
 
-- Primary school mathematics
+- Primary school subjects
 - Core concept explanations
 - Basic parent guidance
 
@@ -218,11 +267,31 @@ We welcome contributions! Please see our contributing guidelines for more detail
 
 ## License
 
-[License details]
+MIT License
+
+Copyright (c) 2024 Yayska
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ## Contact
 
-[Contact information]
+For questions or support, please [create an issue](https://github.com/alchemication/yayska-frontend/issues).
 
 ---
 
