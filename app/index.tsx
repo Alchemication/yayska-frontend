@@ -112,17 +112,6 @@ export default function WelcomeScreen() {
             <Text style={styles.brandName}>Know more. Help better.</Text>
           </Text>
 
-          {/* Brief value proposition */}
-          <View style={styles.valueProps}>
-            <Text style={styles.valueProp}>
-              • Understand your child's curriculum
-            </Text>
-            <Text style={styles.valueProp}>
-              • Get tailored learning resources
-            </Text>
-            <Text style={styles.valueProp}>• Practice with your child</Text>
-          </View>
-
           <View style={styles.authButtons}>
             {/* Sign-in option */}
             <Pressable

@@ -14,11 +14,13 @@ export interface ApiChild {
 export interface CreateChildRequest {
   name: string;
   school_year_id: number;
+  memory: Record<string, any>;
 }
 
 export interface UpdateChildRequest {
   name: string;
   school_year_id: number;
+  memory?: Record<string, any>;
 }
 
 // Response types

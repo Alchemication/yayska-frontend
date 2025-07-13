@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,11 @@ import { AppHeader } from '../src/components/Navigation/AppHeader';
 import { UserProfile } from '../src/components/Auth/UserProfile';
 import { Ionicons } from '@expo/vector-icons';
 import { clearActiveChild } from '../src/utils/activeChild';
+import {
+  SelectionGrid,
+  SelectionGridItem,
+} from '../src/components/Onboarding/SelectionGrid';
+import { CHILD_INTERESTS } from '../src/constants/education';
 
 // Local type for editing state
 type ChildEdit = {
@@ -34,6 +40,7 @@ type ChildEdit = {
   year: string | null;
   yearId: number | null;
   isNew: boolean;
+  memory: Record<string, any>;
 };
 
 export default function ManageChildrenScreen() {
@@ -52,6 +59,10 @@ export default function ManageChildrenScreen() {
     Set<string | number>
   >(new Set());
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [isInterestModalVisible, setIsInterestModalVisible] = useState(false);
+  const [currentlyEditingChild, setCurrentlyEditingChild] =
+    useState<ChildEdit | null>(null);
+  const [magicRevealText, setMagicRevealText] = useState<string | null>(null);
 
   useEffect(() => {
     loadChildren();
@@ -70,6 +81,7 @@ export default function ManageChildrenScreen() {
         year: child.year,
         yearId: child.yearId,
         isNew: false,
+        memory: child.memory,
       }));
 
       setEditingChildren(editingData);
@@ -88,6 +100,7 @@ export default function ManageChildrenScreen() {
       year: null,
       yearId: null,
       isNew: true,
+      memory: { interests: [] },
     };
     setEditingChildren([...editingChildren, newChild]);
   };
@@ -238,6 +251,42 @@ export default function ManageChildrenScreen() {
     );
   };
 
+  const openInterestModal = (child: ChildEdit) => {
+    setCurrentlyEditingChild(child);
+    setIsInterestModalVisible(true);
+    setMagicRevealText('Tap an interest to see an example!');
+  };
+
+  const toggleInterestForEditingChild = (interestId: string) => {
+    if (!currentlyEditingChild) return;
+
+    const currentInterests = currentlyEditingChild.memory?.interests || [];
+    const newInterests = currentInterests.includes(interestId)
+      ? currentInterests.filter((id: string) => id !== interestId)
+      : [...currentInterests, interestId];
+
+    const updatedChild = {
+      ...currentlyEditingChild,
+      memory: { ...currentlyEditingChild.memory, interests: newInterests },
+    };
+    setCurrentlyEditingChild(updatedChild);
+
+    // Also update the list of editingChildren
+    setEditingChildren(
+      editingChildren.map((c) => (c.id === updatedChild.id ? updatedChild : c))
+    );
+
+    // Update magic reveal text
+    const lastSelectedInterest = CHILD_INTERESTS.find(
+      (i) => i.id === interestId
+    );
+    if (newInterests.length > 0 && lastSelectedInterest) {
+      setMagicRevealText(`Great! We can ${lastSelectedInterest.example}`);
+    } else {
+      setMagicRevealText('Tap an interest to see an example!');
+    }
+  };
+
   const handleNavigation = () => {
     // Try to go back, but if there's no screen to go back to, go to home
     try {
@@ -294,7 +343,11 @@ export default function ManageChildrenScreen() {
 
           try {
             // Create new child
-            await saveChild(editChild.name.trim(), editChild.yearId!);
+            await saveChild(
+              editChild.name.trim(),
+              editChild.yearId!,
+              editChild.memory
+            );
           } finally {
             // Remove loading state for this child
             setCreatingChildren((prev) => {
@@ -311,7 +364,9 @@ export default function ManageChildrenScreen() {
           if (
             originalChild &&
             (originalChild.name !== editChild.name.trim() ||
-              originalChild.yearId !== editChild.yearId)
+              originalChild.yearId !== editChild.yearId ||
+              JSON.stringify(originalChild.memory) !==
+                JSON.stringify(editChild.memory))
           ) {
             // Set loading state for this specific child
             setUpdatingChildren((prev) => new Set(prev).add(editChild.id));
@@ -320,7 +375,8 @@ export default function ManageChildrenScreen() {
               await updateChild(
                 originalChild.id,
                 editChild.name.trim(),
-                editChild.yearId!
+                editChild.yearId!,
+                editChild.memory
               );
             } finally {
               // Remove loading state for this child
@@ -531,6 +587,20 @@ export default function ManageChildrenScreen() {
                       }
                     />
                   </View>
+
+                  <Pressable
+                    style={styles.editInterestsButton}
+                    onPress={() => openInterestModal(child)}
+                  >
+                    <Ionicons
+                      name="sparkles-outline"
+                      size={16}
+                      color={colors.neutral.offWhite}
+                    />
+                    <Text style={styles.editInterestsButtonText}>
+                      Edit Interests
+                    </Text>
+                  </Pressable>
                 </View>
               ))}
 
@@ -606,6 +676,34 @@ export default function ManageChildrenScreen() {
           />
         </View>
       )}
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isInterestModalVisible}
+        onRequestClose={() => setIsInterestModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {currentlyEditingChild && (
+              <SelectionGrid
+                title={`Editing interests for ${currentlyEditingChild.name}`}
+                subtitle="Select the topics they love to help personalize their learning."
+                items={CHILD_INTERESTS}
+                selectedItems={currentlyEditingChild.memory?.interests || []}
+                onToggleItem={toggleInterestForEditingChild}
+                magicRevealText={magicRevealText}
+              />
+            )}
+            <Pressable
+              style={styles.closeModalButton}
+              onPress={() => setIsInterestModalVisible(false)}
+            >
+              <Text style={styles.closeModalButtonText}>Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -811,5 +909,53 @@ const styles = StyleSheet.create({
   },
   saveLoadingText: {
     marginLeft: 8,
+  },
+  editInterestsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.primary.green,
+    borderRadius: commonStyles.borderRadius.medium,
+  },
+  editInterestsButtonText: {
+    color: colors.neutral.offWhite,
+    marginLeft: 8,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeModalButton: {
+    marginTop: 15,
+    backgroundColor: colors.primary.green,
+    borderRadius: 20,
+    padding: 12,
+    elevation: 2,
+    width: '100%',
+  },
+  closeModalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

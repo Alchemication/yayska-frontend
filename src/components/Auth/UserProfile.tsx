@@ -3,6 +3,8 @@ import { StyleSheet, View, Text, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'expo-router';
+import { ProfileAvatar } from './ProfileAvatar';
 
 interface UserProfileProps {
   isVisible: boolean;
@@ -11,25 +13,15 @@ interface UserProfileProps {
 
 export function UserProfile({ isVisible, onClose }: UserProfileProps) {
   const { user, logout } = useAuth();
-  const [imageError, setImageError] = useState(false);
+  const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Reset error state when user changes
-  useEffect(() => {
-    setImageError(false);
-  }, [user]);
-
-  // Debug user object to see what's happening
-  useEffect(() => {
-    if (user) {
-      console.log('User object:', JSON.stringify(user));
-      console.log('Profile picture URL:', user.picture);
-    } else {
-      console.log('No user object available');
-    }
-  }, [user]);
-
   if (!isVisible) return null;
+
+  const handleEditProfile = () => {
+    onClose(); // Close the modal first
+    router.push('/profile/edit');
+  };
 
   const handleLogout = async () => {
     try {
@@ -51,42 +43,6 @@ export function UserProfile({ isVisible, onClose }: UserProfileProps) {
     }
   };
 
-  // Default avatar if no profile picture
-  const defaultAvatar = (
-    <View style={styles.defaultAvatar}>
-      <Ionicons name="person" size={32} color={colors.neutral.white} />
-    </View>
-  );
-
-  // User avatar handling
-  const renderUserAvatar = () => {
-    if (!user || !user.picture || imageError) {
-      return defaultAvatar;
-    }
-
-    // Make sure the URL is valid
-    const imageUrl = user.picture;
-    console.log('Attempting to load image from URL:', imageUrl);
-
-    // Handle different URL formats
-    let validUrl = imageUrl;
-    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-      validUrl = `https://${imageUrl}`;
-      console.log('URL modified to:', validUrl);
-    }
-
-    return (
-      <Image
-        source={{ uri: validUrl }}
-        style={styles.avatar}
-        onError={(e) => {
-          console.log('Image loading error:', e.nativeEvent.error);
-          setImageError(true);
-        }}
-      />
-    );
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -97,12 +53,32 @@ export function UserProfile({ isVisible, onClose }: UserProfileProps) {
       </View>
 
       <View style={styles.profileContent}>
-        {renderUserAvatar()}
-        <Text style={styles.userName}>{user?.name || 'User'}</Text>
+        <View style={styles.avatarContainer}>
+          <ProfileAvatar size={80} />
+        </View>
+        <Text style={styles.userName}>
+          {user ? `${user.first_name} ${user.last_name}` : 'User'}
+        </Text>
         <Text style={styles.userEmail}>
           {user?.email || 'No email available'}
         </Text>
       </View>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.editButton,
+          pressed && styles.buttonPressed,
+        ]}
+        onPress={handleEditProfile}
+      >
+        <Ionicons
+          name="pencil"
+          size={20}
+          color={colors.neutral.offWhite}
+          style={styles.buttonIcon}
+        />
+        <Text style={styles.editButtonText}>Edit My Preferences</Text>
+      </Pressable>
 
       <Pressable
         style={({ pressed }) => [
@@ -157,19 +133,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 16,
-  },
-  defaultAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primary.green,
-    justifyContent: 'center',
-    alignItems: 'center',
+  avatarContainer: {
     marginBottom: 16,
   },
   userName: {
@@ -181,6 +145,21 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 16,
     color: colors.text.secondary,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary.green,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  editButtonText: {
+    color: colors.neutral.offWhite,
+    fontSize: 16,
+    fontWeight: '500',
   },
   logoutButton: {
     flexDirection: 'row',

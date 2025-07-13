@@ -28,6 +28,8 @@ import { fetchWithAuth, getAccessToken } from './authApi';
 import Constants from 'expo-constants';
 import { AnalyticsEvent, setEventSender } from '../utils/analytics';
 
+import { User, UpdateUserRequest } from '../types/user';
+
 // Get environment variable helper
 const getEnvVariable = (key: string, defaultValue: string = ''): string => {
   return (Constants.expoConfig?.extra as any)?.[key] || defaultValue;
@@ -182,6 +184,16 @@ export const api = {
     delete: async (id: number): Promise<DeleteChildResponse> => {
       return fetchAPI<DeleteChildResponse>(`/children/${id}`, {
         method: 'DELETE',
+      });
+    },
+  },
+
+  user: {
+    updateMe: async (userData: UpdateUserRequest): Promise<User> => {
+      // The API now returns the user object at the root, so we expect type User directly.
+      return fetchAPI<User>('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify(userData),
       });
     },
   },

@@ -22,11 +22,16 @@ export async function getChildren(): Promise<Child[]> {
   }
 }
 
-export async function saveChild(name: string, yearId: number): Promise<Child> {
+export async function saveChild(
+  name: string,
+  yearId: number,
+  memory: Record<string, any>
+): Promise<Child> {
   try {
     return await api.children.create({
       name,
       school_year_id: yearId,
+      memory,
     });
   } catch (error) {
     console.error('Error saving child:', error);
@@ -37,12 +42,14 @@ export async function saveChild(name: string, yearId: number): Promise<Child> {
 export async function updateChild(
   id: number,
   name: string,
-  yearId: number
+  yearId: number,
+  memory: Record<string, any>
 ): Promise<Child> {
   try {
     return await api.children.update(id, {
       name,
       school_year_id: yearId,
+      memory,
     });
   } catch (error) {
     console.error('Error updating child:', error);
@@ -68,7 +75,7 @@ export async function saveChildren(children: Child[]): Promise<void> {
 export async function addChildren(newChildren: Child[]): Promise<void> {
   // Create each child via API
   for (const child of newChildren) {
-    await saveChild(child.name, child.yearId);
+    await saveChild(child.name, child.yearId, child.memory || {});
   }
 }
 

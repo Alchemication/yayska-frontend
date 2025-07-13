@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '../context/AuthContext';
+import { User } from '../types/user';
 import Constants from 'expo-constants';
 
 // Storage keys
@@ -113,7 +113,7 @@ export const fetchWithAuth = async <T>(
 
     // Try to parse JSON, but gracefully fail if there's no body
     const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    return text ? JSON.parse(text) : (null as T);
   } catch (error) {
     if (error instanceof AuthApiError) {
       throw error;
@@ -181,14 +181,10 @@ export const getCurrentUser = async (): Promise<User | null> => {
 // Auth API functions
 export const authApi = {
   // Get user profile
-  getUserProfile: () => fetchWithAuth<User>('/auth/me'),
-
-  // Update profile information
-  updateProfile: (profileData: Partial<User>) =>
-    fetchWithAuth<User>('/auth/profile', {
-      method: 'PATCH',
-      body: JSON.stringify(profileData),
-    }),
+  getUserProfile: async (): Promise<User> => {
+    // The API now returns the user object at the root, so we expect type User directly.
+    return fetchWithAuth<User>('/users/me');
+  },
 
   // Logout (invalidate refresh token)
   logout: async () => {

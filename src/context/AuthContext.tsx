@@ -8,6 +8,9 @@ import { jwtDecode } from 'jwt-decode';
 import Constants from 'expo-constants';
 import { ENV } from '../utils/environment';
 import { trackEvent } from '../utils/analytics';
+import { authApi } from '../services/authApi';
+import { Alert } from 'react-native';
+import { User } from '../types/user';
 
 // Register for redirect
 WebBrowser.maybeCompleteAuthSession();
@@ -19,17 +22,9 @@ const AUTH_KEYS = {
   USER_INFO: 'yayska_user_info',
 };
 
-// User type
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  picture?: string;
-}
-
 // The AuthContext interface
 interface AuthContextType {
-  user: any | null;
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: () => Promise<void>;
@@ -39,6 +34,7 @@ interface AuthContextType {
     codeVerifier: string,
     redirectUri: string
   ) => Promise<boolean>;
+  setUser: (user: User | null) => void; // Expose setUser
 }
 
 // Create context with a default value
@@ -48,6 +44,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: async () => {},
   logout: async () => {},
+  setUser: () => {}, // Add default for setUser
 });
 
 // API base URL from environment variables
@@ -74,37 +71,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // Check if we have a token in storage
         const token = await AsyncStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
-        const userInfo = await AsyncStorage.getItem(AUTH_KEYS.USER_INFO);
 
         if (!token) {
+          console.log('[AuthContext] No token found, user is logged out.');
           setIsLoading(false);
           return;
         }
 
-        // Validate token and load user data
-        try {
-          // Validate token with simple expiry check
-          const decodedToken = jwtDecode(token);
+        console.log('[AuthContext] Token found, verifying with server...');
+        // With a token, always fetch the latest user profile to ensure data is fresh
+        // and the token is still valid.
+        const userProfile = await authApi.getUserProfile();
 
-          // Load user from stored user info
-          if (userInfo) {
-            const userData = JSON.parse(userInfo);
-            setUser(userData);
-            setIsAuthenticated(true);
-            console.log(
-              '[AuthContext] Loaded user from storage:',
-              userData.email
-            );
-          } else {
-            console.warn('[AuthContext] Token found but no user info');
-            await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
-          }
-        } catch (e) {
-          console.error('[AuthContext] Invalid token or user data:', e);
-          await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
+        if (userProfile) {
+          console.log('[AuthContext] User verified, setting auth state.');
+          // Save the fresh user data to storage
+          await AsyncStorage.setItem(
+            AUTH_KEYS.USER_INFO,
+            JSON.stringify(userProfile)
+          );
+          setUser(userProfile);
+          setIsAuthenticated(true);
+        } else {
+          // This case should ideally not be hit if authApi.getUserProfile throws on error
+          console.warn(
+            '[AuthContext] Token was present but failed to fetch user profile.'
+          );
+          await clearAuthData();
         }
       } catch (error) {
-        console.error('[AuthContext] Error loading user:', error);
+        console.error('[AuthContext] Failed to verify token/load user:', error);
+        // If fetching the profile fails (e.g., 401), treat as logged out
+        await clearAuthData();
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
       }
@@ -285,6 +285,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(tokenData.user);
       setIsAuthenticated(true);
 
+      // --- NEW SAFEGUARD ---
+      // Before proceeding, verify the user record was actually created in the database.
+      try {
+        console.log('[AuthContext] Verifying user creation with self-check...');
+        const verifiedUserProfile = await authApi.getUserProfile();
+        console.log('[AuthContext] Self-check successful. User exists in DB.');
+
+        // Now, use this verified profile as the source of truth
+        setUser(verifiedUserProfile);
+        await AsyncStorage.setItem(
+          AUTH_KEYS.USER_INFO,
+          JSON.stringify(verifiedUserProfile)
+        );
+        setIsAuthenticated(true);
+      } catch (selfCheckError) {
+        console.error(
+          '[AuthContext] Self-check failed! The user record was not found in the DB after a successful login callback. This is a critical backend issue.',
+          selfCheckError
+        );
+        // Invalidate this failed login session
+        await logout();
+        Alert.alert(
+          'Account Creation Error',
+          'Your account could not be created at this time. Please try signing in again.'
+        );
+        return false; // Stop the login process
+      }
+      // --- END SAFEGUARD ---
+
       // Track successful login
       await trackEvent('USER_LOGIN', {
         method: 'google',
@@ -368,6 +397,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Helper to clear all auth-related data
+  const clearAuthData = async () => {
+    await AsyncStorage.removeItem(AUTH_KEYS.ACCESS_TOKEN);
+    await AsyncStorage.removeItem(AUTH_KEYS.REFRESH_TOKEN);
+    await AsyncStorage.removeItem(AUTH_KEYS.USER_INFO);
+  };
+
   // Return the provider
   return (
     <AuthContext.Provider
@@ -378,6 +414,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         logout,
         processAuthResult,
+        setUser, // Provide setUser through context
       }}
     >
       {children}

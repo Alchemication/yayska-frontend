@@ -23,7 +23,7 @@ export function ChildInput({
         style={[styles.input, disabled && styles.inputDisabled]}
         value={childName}
         onChangeText={onNameChange}
-        placeholder="Child's name (optional)"
+        placeholder="Child's name"
         placeholderTextColor={colors.text.tertiary}
         autoCapitalize="words"
         editable={!disabled}

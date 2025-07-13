@@ -1,5 +1,68 @@
 import { SchoolYear, EducationLevel } from '../types/education';
 
+export const CORE_SUBJECTS = [
+  { id: 'english', name: 'English', emoji: '📚' },
+  { id: 'gaeilge', name: 'Gaeilge', emoji: '🇮🇪' },
+  { id: 'mathematics', name: 'Mathematics', emoji: '➗' },
+  { id: 'history', name: 'History', emoji: '📜' },
+  { id: 'geography', name: 'Geography', emoji: '🌍' },
+  { id: 'science', name: 'Science', emoji: '🔬' },
+  { id: 'visual_arts', name: 'Visual Arts', emoji: '🖼️' },
+  { id: 'music', name: 'Music', emoji: '🎵' },
+  { id: 'drama', name: 'Drama', emoji: '🎭' },
+  { id: 'physical_education', name: 'Physical Education', emoji: '🏃‍♀️' },
+  {
+    id: 'sphe',
+    name: 'Social, Personal and Health Education',
+    emoji: '❤️',
+  },
+];
+
+export const CHILD_INTERESTS = [
+  {
+    id: 'sports',
+    name: 'Sports',
+    emoji: '⚽️',
+    example: 'explain fractions using minutes in a match.',
+  },
+  {
+    id: 'animals',
+    name: 'Animals',
+    emoji: '🐾',
+    example: 'practice counting by comparing different animals.',
+  },
+  {
+    id: 'art',
+    name: 'Art & Crafts',
+    emoji: '🎨',
+    example: 'learn shapes and colors while talking about a painting.',
+  },
+  {
+    id: 'building',
+    name: 'Building & LEGO',
+    emoji: '🧱',
+    example: 'explore geometry by building different structures.',
+  },
+  {
+    id: 'fantasy',
+    name: 'Fantasy & Magic',
+    emoji: '🦄',
+    example: 'write fun stories to improve grammar.',
+  },
+  {
+    id: 'space',
+    name: 'Space',
+    emoji: '🚀',
+    example: 'use planets and rockets to make numbers exciting.',
+  },
+  {
+    id: 'nature',
+    name: 'Nature & Outdoors',
+    emoji: '🌳',
+    example: 'learn about seasons on a walk in the park.',
+  },
+];
+
 // Hard-coded education levels
 export const EDUCATION_LEVELS: EducationLevel[] = [
   {

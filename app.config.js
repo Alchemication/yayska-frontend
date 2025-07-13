@@ -29,6 +29,10 @@ module.exports = {
   },
   web: {
     favicon: './assets/images/favicon.png',
+    meta: {
+      // Add this to deal with Google's strict referrer policy for user images
+      referrer: 'no-referrer',
+    },
     bundler: 'metro',
     output: 'single',
     rewrite: {
