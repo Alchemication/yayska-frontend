@@ -12,6 +12,8 @@ import {
   Modal,
   Button,
   FlatList,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -242,6 +244,18 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  const handleKeyPress = (
+    e: NativeSyntheticEvent<TextInputKeyPressEventData>
+  ) => {
+    if (Platform.OS !== 'web') return;
+
+    const event = e.nativeEvent as any;
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  };
+
   useEffect(() => {
     if (text.trim().length > 0) {
       buttonScale.value = withSpring(1, { damping: 15, stiffness: 150 });
@@ -266,6 +280,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         placeholder={placeholder}
         placeholderTextColor={colors.text.tertiary}
         multiline
+        blurOnSubmit={false}
+        onKeyPress={handleKeyPress}
       />
       <Animated.View style={[styles.sendButtonContainer, animatedStyle]}>
         <Pressable
