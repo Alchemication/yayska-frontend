@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -43,6 +44,7 @@ type ChildState = {
   yearId: number | null;
   memory: {
     interests?: string[];
+    context_notes?: string;
   };
 };
 
@@ -63,6 +65,10 @@ export default function OnboardingScreen() {
       memory: {},
     },
   ]);
+  // UI-only state for expanding optional context input per child
+  const [contextExpanded, setContextExpanded] = useState<
+    Record<string, boolean>
+  >({});
 
   // State for parent's memory
   const [parentMemory, setParentMemory] = useState({
@@ -82,11 +88,17 @@ export default function OnboardingScreen() {
       memory: {},
     };
     setChildren([...children, newChild]);
+    setContextExpanded((prev) => ({ ...prev, [newChild.id]: false }));
   };
 
   const removeChild = (id: string) => {
     if (children.length > 1) {
       setChildren(children.filter((c) => c.id !== id));
+      setContextExpanded((prev) => {
+        const next = { ...prev } as Record<string, boolean>;
+        delete next[id];
+        return next;
+      });
     }
   };
 
@@ -207,6 +219,9 @@ export default function OnboardingScreen() {
       const childCreationPromises = children.map((child) => {
         const childMemory = {
           interests: child.memory.interests || [],
+          ...(child.memory.context_notes && child.memory.context_notes.trim()
+            ? { context_notes: child.memory.context_notes.trim() }
+            : {}),
         };
         return saveChild(child.name, child.yearId!, childMemory);
       });
@@ -255,7 +270,7 @@ export default function OnboardingScreen() {
       case 'parentSubjects':
         return (
           <SelectionGrid
-            title="What subjects do you find challenging?"
+            title="What subjects do YOU find challenging?"
             subtitle="This helps me understand what topics to provide more guidance on for you."
             items={CORE_SUBJECTS.map((subject) => ({
               ...subject,
@@ -307,14 +322,67 @@ export default function OnboardingScreen() {
       case 'childInterests':
         const currentChild = children[step.childIndex ?? 0];
         return (
-          <SelectionGrid
-            title={`What makes ${currentChild.name} tick?`}
-            subtitle="This is our secret weapon! Pick a few topics they love, and we'll use them to make learning feel like play."
-            items={CHILD_INTERESTS}
-            selectedItems={currentChild.memory.interests || []}
-            onToggleItem={(id) => toggleChildInterest(step.childIndex ?? 0, id)}
-            magicRevealText={magicRevealText}
-          />
+          <View>
+            <SelectionGrid
+              title={`What makes ${currentChild.name} tick?`}
+              subtitle="This is our secret weapon! Pick a few topics they love, and we'll use them to make learning feel like play."
+              items={CHILD_INTERESTS}
+              selectedItems={currentChild.memory.interests || []}
+              onToggleItem={(id) =>
+                toggleChildInterest(step.childIndex ?? 0, id)
+              }
+              magicRevealText={magicRevealText}
+            />
+
+            <View style={{ marginTop: 16 }}>
+              <Pressable
+                onPress={() =>
+                  setContextExpanded((prev) => ({
+                    ...prev,
+                    [currentChild.id]: !prev[currentChild.id],
+                  }))
+                }
+              >
+                <Text style={styles.addContextLink}>
+                  Add context (Optional · Recommended)
+                </Text>
+              </Pressable>
+
+              {contextExpanded[currentChild.id] && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.contextExamplesText}>
+                    Examples: Bilingual (Polish/English), learning differences
+                    or support needs, therapies, attention/processing style,
+                    sensory preferences.
+                  </Text>
+                  <TextInput
+                    placeholder="Add a brief note about your child"
+                    value={currentChild.memory.context_notes || ''}
+                    onChangeText={(text) => {
+                      const idx = step.childIndex ?? 0;
+                      const updated = [...children];
+                      updated[idx] = {
+                        ...updated[idx],
+                        memory: {
+                          ...updated[idx].memory,
+                          context_notes: text,
+                        },
+                      };
+                      setChildren(updated);
+                    }}
+                    multiline
+                    numberOfLines={3}
+                    style={styles.contextNotesInput}
+                    placeholderTextColor={colors.text.tertiary}
+                    maxLength={300}
+                  />
+                  <Text style={styles.contextNotesHint}>
+                    Up to 300 characters
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
         );
       case 'summary':
         return (
@@ -566,5 +634,39 @@ const styles = StyleSheet.create({
     color: colors.primary.green,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  addContextLink: {
+    color: colors.primary.green,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  addContextHelp: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  contextNotesInput: {
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGrey,
+    borderRadius: commonStyles.borderRadius.medium,
+    padding: 12,
+    backgroundColor: colors.background.secondary,
+    minHeight: 88,
+    textAlignVertical: 'top',
+  },
+  contextNotesHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: colors.text.secondary,
+    textAlign: 'right',
+  },
+  contextExamplesText: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginBottom: 8,
+    textAlign: 'center',
   },
 });

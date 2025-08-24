@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -63,6 +64,9 @@ export default function ManageChildrenScreen() {
   const [currentlyEditingChild, setCurrentlyEditingChild] =
     useState<ChildEdit | null>(null);
   const [magicRevealText, setMagicRevealText] = useState<string | null>(null);
+  const [contextExpanded, setContextExpanded] = useState<
+    Record<string | number, boolean>
+  >({});
 
   useEffect(() => {
     loadChildren();
@@ -103,6 +107,7 @@ export default function ManageChildrenScreen() {
       memory: { interests: [] },
     };
     setEditingChildren([...editingChildren, newChild]);
+    setContextExpanded((prev) => ({ ...prev, [newChild.id]: false }));
   };
 
   const removeChild = async (id: number | string) => {
@@ -121,6 +126,11 @@ export default function ManageChildrenScreen() {
       console.log('Child is new, removing from local state only');
       // Just remove from local state if it's a new child
       setEditingChildren(editingChildren.filter((c) => c.id !== id));
+      setContextExpanded((prev) => {
+        const next = { ...prev } as Record<string | number, boolean>;
+        delete next[id];
+        return next;
+      });
     } else {
       console.log('Child is existing, showing confirmation dialog');
 
@@ -343,11 +353,18 @@ export default function ManageChildrenScreen() {
 
           try {
             // Create new child
-            await saveChild(
-              editChild.name.trim(),
-              editChild.yearId!,
-              editChild.memory
-            );
+            const memory = {
+              ...editChild.memory,
+              ...(editChild.memory?.context_notes &&
+              (editChild.memory.context_notes as string).trim()
+                ? {
+                    context_notes: (
+                      editChild.memory.context_notes as string
+                    ).trim(),
+                  }
+                : {}),
+            };
+            await saveChild(editChild.name.trim(), editChild.yearId!, memory);
           } finally {
             // Remove loading state for this child
             setCreatingChildren((prev) => {
@@ -372,11 +389,22 @@ export default function ManageChildrenScreen() {
             setUpdatingChildren((prev) => new Set(prev).add(editChild.id));
 
             try {
+              const memory = {
+                ...editChild.memory,
+                ...(editChild.memory?.context_notes &&
+                (editChild.memory.context_notes as string).trim()
+                  ? {
+                      context_notes: (
+                        editChild.memory.context_notes as string
+                      ).trim(),
+                    }
+                  : {}),
+              };
               await updateChild(
                 originalChild.id,
                 editChild.name.trim(),
                 editChild.yearId!,
-                editChild.memory
+                memory
               );
             } finally {
               // Remove loading state for this child
@@ -601,6 +629,58 @@ export default function ManageChildrenScreen() {
                       Edit Interests
                     </Text>
                   </Pressable>
+
+                  <View style={styles.contextContainer}>
+                    <Pressable
+                      onPress={() =>
+                        setContextExpanded((prev) => ({
+                          ...prev,
+                          [child.id]: !prev[child.id],
+                        }))
+                      }
+                    >
+                      <Text style={styles.addContextLink}>
+                        Add context (Optional · Recommended)
+                      </Text>
+                    </Pressable>
+
+                    {contextExpanded[child.id] && (
+                      <View style={{ marginTop: 8 }}>
+                        <Text style={styles.contextExamplesText}>
+                          Examples: Bilingual (Polish/English), learning
+                          differences or support needs, therapies,
+                          attention/processing style, sensory preferences.
+                        </Text>
+                        <TextInput
+                          placeholder="Add a brief note about your child"
+                          value={(child.memory?.context_notes as string) || ''}
+                          onChangeText={(text) => {
+                            setEditingChildren(
+                              editingChildren.map((c) =>
+                                c.id === child.id
+                                  ? {
+                                      ...c,
+                                      memory: {
+                                        ...c.memory,
+                                        context_notes: text,
+                                      },
+                                    }
+                                  : c
+                              )
+                            );
+                          }}
+                          multiline
+                          numberOfLines={3}
+                          style={styles.contextNotesInput}
+                          placeholderTextColor={colors.text.tertiary}
+                          maxLength={300}
+                        />
+                        <Text style={styles.contextNotesHint}>
+                          Up to 300 characters
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               ))}
 
@@ -923,6 +1003,44 @@ const styles = StyleSheet.create({
     color: colors.neutral.offWhite,
     marginLeft: 8,
     fontWeight: 'bold',
+  },
+  contextContainer: {
+    marginTop: 8,
+  },
+  addContextLink: {
+    color: colors.primary.green,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+    marginTop: 6,
+  },
+  addContextHelp: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  contextNotesInput: {
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGrey,
+    borderRadius: commonStyles.borderRadius.medium,
+    padding: 12,
+    backgroundColor: colors.background.secondary,
+    minHeight: 88,
+    textAlignVertical: 'top',
+  },
+  contextNotesHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: colors.text.secondary,
+    textAlign: 'right',
+  },
+  contextExamplesText: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
